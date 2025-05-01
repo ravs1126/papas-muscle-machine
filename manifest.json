@@ -1,7 +1,8 @@
 {
   "name": "PAPAS MUSCLE MACHINE",
   "short_name": "P.M.M",
-  "start_url": ".",
+  "start_url": "./index.html?utm_source=homescreen",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",

@@ -19,6 +19,7 @@ self.addEventListener('activate', evt =>
         keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
       )
     )
+    .then(() => self.clients.claim())  // Claim control of all clients immediately
   )
 );
 
