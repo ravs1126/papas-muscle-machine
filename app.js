@@ -3,6 +3,14 @@ const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxI6ZSAearvsukTH2Jo-o
 const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
 const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I';
 
+// Capture the PWA install prompt and show it immediately
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  deferredPrompt.prompt();
+});
+
 // Build the Sheets API URL for a data range
 function urlFor(tab) {
   return `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}` +
