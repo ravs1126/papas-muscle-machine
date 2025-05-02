@@ -3,6 +3,9 @@ const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxI6ZSAearvsukTH2Jo-o
 const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
 const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I';
 
+// Keep track of the logged-in user
+let currentUser = null;
+
 // Capture the PWA install prompt and show it immediately
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', e => {
@@ -45,22 +48,23 @@ async function fetchSheet(tab) {
 async function initSelectors() {
   const wSel = document.getElementById('week-select');
   const dSel = document.getElementById('day-select');
+  wSel.innerHTML = '';
+  dSel.innerHTML = '';
   // Days static
   ['Day 1','Day 2','Day 3','Day 4','Day 5','Day 6','Day 7']
     .forEach(d => dSel.append(new Option(d, d)));
   // Weeks dynamic
   try {
     const titles = await fetchSheetNames();
-    // Filter and sort "Week X" titles
+    // Filter and sort "Week X" titles for selected user
+    const prefix = currentUser + ' ';
     const weeks = titles
-      .filter(t => /^Week\s+\d+$/i.test(t))
+      .filter(t => t.startsWith(prefix) && /^.+\sWeek\s+\d+$/i.test(t))
+      .map(t => t.replace(prefix, ''))
       .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
     weeks.forEach(w => wSel.append(new Option(w, w)));
   } catch (err) {
     console.error('Failed to load sheet names:', err);
-    // Fallback: static list
-    ['Week 1','Week 2','Week 3','Week 4']
-      .forEach(w => wSel.append(new Option(w, w)));
   }
 }
 
@@ -77,16 +81,16 @@ function extractDay(rows, label) {
 }
 
 // Attach change listeners to inputs with no-cors
-function attachInputs() {
+function attachInputs(sheetName) {
   document.querySelectorAll(
     '.name-input, .weight-input, .reps1-input, .reps2-input, .reps3-input, .reps4-input, .pump-input, .healed-input, .pain-input'
   ).forEach(input => {
     input.addEventListener('change', async e => {
-      const {sheet,row,col} = e.target.dataset;
-      const value = e.target.value;
+      const {row,col} = e.target.dataset;
+      const value     = e.target.value;
       try {
-        await fetch(WRITE_URL, { method:'POST', mode:'no-cors', body:JSON.stringify({sheet,cell:`${col}${row}`,value}) });
-        console.log(`✔ Updated ${sheet}!${col}${row} → ${value}`);
+        await fetch(WRITE_URL, { method:'POST', mode:'no-cors', body:JSON.stringify({sheet: sheetName, cell:`${col}${row}`, value}) });
+        console.log(`✔ Updated ${sheetName}!${col}${row} → ${value}`);
       } catch(err) {
         console.error(err);
         alert('Save failed—see console.');
@@ -96,8 +100,7 @@ function attachInputs() {
 }
 
 // Render the exercise cards into the DOM
-function renderExercises(entries) {
-  // entries: [{index,values}]
+function renderExercises(entries, sheetName) {
   const filtered = entries.filter(e=> typeof e.values[0]==='string' && e.values[0].toLowerCase().trim()!=='execuse');
   const container = document.getElementById('exercise-list');
   container.innerHTML='';
@@ -105,37 +108,61 @@ function renderExercises(entries) {
     container.innerHTML='<p class="text-center text-gray-500">No exercises for this day.</p>';
     return;
   }
-  const tpl= document.getElementById('exercise-card-template').content;
-  const week=document.getElementById('week-select').value;
+  const tpl  = document.getElementById('exercise-card-template').content;
   filtered.forEach(e=>{
     const [name='',wt='',r1='',r2='',r3='',r4='',pump='',healed='',pain='']=e.values;
-    const clone=document.importNode(tpl,true);
-    const nameEl=clone.querySelector('.exercise-name'); if(nameEl) nameEl.textContent=name;
-    const rowNum=e.index+1;
-    function bind(sel,val,col){const inp=clone.querySelector(sel);if(!inp)return;inp.value=val;inp.dataset.sheet=week;inp.dataset.row=rowNum;inp.dataset.col=col;}
-    bind('.name-input',  name, 'A');bind('.weight-input',wt,'B');bind('.reps1-input',r1,'C');bind('.reps2-input',r2,'D');bind('.reps3-input',r3,'E');bind('.reps4-input',r4,'F');bind('.pump-input',pump,'G');bind('.healed-input',healed,'H');bind('.pain-input',pain,'I');
+    const clone = document.importNode(tpl,true);
+    const nameEl = clone.querySelector('.exercise-name'); if(nameEl) nameEl.textContent=name;
+    const rowNum = e.index + 1;
+    function bind(sel,val,col) {
+      const inp = clone.querySelector(sel);
+      if(!inp) return;
+      inp.value = val;
+      inp.dataset.row   = rowNum;
+      inp.dataset.col   = col;
+    }
+    bind('.name-input',  name, 'A');
+    bind('.weight-input',wt,   'B');
+    bind('.reps1-input', r1,   'C');
+    bind('.reps2-input', r2,   'D');
+    bind('.reps3-input', r3,   'E');
+    bind('.reps4-input', r4,   'F');
+    bind('.pump-input',  pump, 'G');
+    bind('.healed-input',healed,'H');
+    bind('.pain-input',  pain, 'I');
     container.appendChild(clone);
   });
-  attachInputs();
+  attachInputs(sheetName);
 }
 
-// Fetch + render when selection changes
+// Fetch + render when selection changes or after login
 async function updateView() {
+  if (!currentUser) return;
   try {
-    const week=document.getElementById('week-select').value;
-    const day =document.getElementById('day-select').value;
-    const all =await fetchSheet(week);
-    renderExercises(extractDay(all,day));
+    const week = document.getElementById('week-select').value;
+    const day  = document.getElementById('day-select').value;
+    const sheetName = `${currentUser} ${week}`;
+    const all  = await fetchSheet(sheetName);
+    renderExercises(extractDay(all,day), sheetName);
   } catch(err){
     console.error(err);
     document.getElementById('exercise-list').innerHTML='<p class="text-center text-red-500">Error loading data.</p>';
   }
 }
 
-// Bootstrap
-(async()=>{
-  await initSelectors();
-  document.getElementById('week-select').addEventListener('change',updateView);
-  document.getElementById('day-select').addEventListener('change',updateView);
-  await updateView();
-})();
+// Login handling and bootstrap
+window.addEventListener('DOMContentLoaded', () => {
+  const loginScreen = document.getElementById('login-screen');
+  const mainContent = document.getElementById('main-content');
+  loginScreen.querySelectorAll('button[data-user]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      currentUser = btn.dataset.user;
+      loginScreen.style.display = 'none';
+      mainContent.style.display = 'block';
+      await initSelectors();
+      document.getElementById('week-select').onchange = updateView;
+      document.getElementById('day-select').onchange  = updateView;
+      updateView();
+    });
+  });
+});
