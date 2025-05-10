@@ -93,29 +93,21 @@ function renderExercises(entries, sheetName) {
     const healed = values[9] || '';
     const pain   = values[10] || '';
 
-    // Week 1 always 4 sets; from week 2+, use previous week's sets value
+    // Determine number of sets:
+    // Week 1 always 4;
+    // Week >=2 uses previous week's Q for that exercise/day
     let numSets;
     if (currentWeek === 1) {
       numSets = 4;
     } else {
-      // find prev week entry matching day & exercise
       const prevEntry = sheetCache.find(r =>
         parseInt(r[0], 10) === currentWeek - 1 &&
         r[1] === currentDay &&
         String(r[2]).trim() === name
       );
       if (prevEntry) {
-        const prevWeekNum = parseInt(prevEntry[0], 10);
-        // if previous week is Week 1, always use 4
-        if (prevWeekNum === 1) {
-          numSets = 4;
-        } else {
-          // use the numeric Q-column (index 16) if present
-          const raw = prevEntry.length > 16 ? parseInt(prevEntry[16], 10) : NaN;
-          numSets = !isNaN(raw) && raw > 0 ? raw : 3;
-        }
+        numSets = prevEntry.length > 16 ? parseInt(prevEntry[16], 10) || 3 : 3;
       } else {
-        // fallback to default
         numSets = 3;
       }
     }
