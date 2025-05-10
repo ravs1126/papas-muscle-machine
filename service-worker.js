@@ -1,4 +1,4 @@
-const CACHE_NAME = 'progress-pwa-v1';
+const CACHE_NAME = 'progress-pwa-v2';
 const APP_SHELL = [
   '/', '/index.html', '/app.js', '/manifest.json',
   '/icons/icon-192.png', '/icons/icon-512.png'
@@ -29,6 +29,20 @@ self.addEventListener('activate', evt =>
 
 self.addEventListener('fetch', evt => {
   const url = new URL(evt.request.url);
+
+  // 0. Navigation: network-first, fallback to cache
+  if (evt.request.mode === 'navigate') {
+    evt.respondWith(
+      fetch(evt.request)
+        .then(res => {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put('/index.html', copy));
+          return res;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
 
   // 1. Don’t cache Google Script calls (write-only API)
   if (
