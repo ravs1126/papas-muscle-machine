@@ -8,10 +8,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="manifest" href="manifest.json?v=2"/>
   <link rel="icon" href="/favicon.ico" type="image/x-icon"/>
+  <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32"/>
 </head>
 <body class="bg-black p-4 relative">
-
-  <!-- Login screen: choose user -->
+  <!-- Login screen -->
   <div id="login-screen" class="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50">
     <img src="assets/profile-logo.png" alt="Select Profile" class="w-48 h-auto mb-4" />
     <div class="space-y-4">
@@ -21,17 +21,14 @@
     </div>
   </div>
 
-  <!-- Main content, hidden until user selected -->
+  <!-- Main content -->
   <div id="main-content" class="hidden">
-
-    <!-- App Title with Logo on both sides -->
     <div class="flex items-center justify-center mb-6 space-x-3">
       <img src="assets/title-logo.png" alt="App Logo" class="h-12 w-12" />
       <h1 class="text-2xl font-bold text-white">PAPAS MUSCLE MACHINE</h1>
       <img src="assets/title-logo.png" alt="App Logo" class="h-12 w-12" />
     </div>
 
-    <!-- Week & Day selectors side by side -->
     <div class="flex space-x-4 mb-6">
       <div class="flex-1">
         <label class="block mb-1 font-medium text-white">Week:</label>
@@ -43,74 +40,49 @@
       </div>
     </div>
 
-    <!-- Container where cards will be injected -->
     <div id="exercise-list" class="space-y-4"></div>
 
-    <!-- Floating add card button -->
     <button id="add-card-btn"
             class="fixed bottom-4 right-4 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg">
       +
     </button>
 
-    <!-- Template for one exercise card -->
     <template id="exercise-card-template">
       <div class="bg-gray-50 p-4 rounded-lg shadow">
         <div class="flex items-center mb-4 space-x-4 w-full">
           <div class="flex-1">
             <label class="text-xs text-[#808000]">Exercise</label>
-            <input type="text"
-                   class="w-full bg-[#454545] text-[#00FF00] font-bold rounded px-2 py-1 name-input"
+            <input type="text" class="w-full bg-[#454545] text-[#00FF00] font-bold rounded px-2 py-1 name-input"
                    data-row="" data-col="A" value=""/>
           </div>
           <div class="flex flex-col">
             <label class="text-xs text-[#808000]">Weight</label>
-            <input type="number"
-                   class="w-20 bg-[#454545] text-white rounded px-2 py-1 weight-input"
+            <input type="number" class="w-20 bg-[#454545] text-white rounded px-2 py-1 weight-input"
                    data-row="" data-col="B" placeholder="lbs" value=""/>
           </div>
         </div>
         <div class="grid grid-cols-4 gap-4 mb-4 text-sm">
           <div>
             <label class="text-xs text-[#808000]">Set 1</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps1-input" data-row="" data-col="C" value=""/>
+            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps1-input"
+                   data-row="" data-col="C" value=""/>
           </div>
           <div>
             <label class="text-xs text-[#808000]">Set 2</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps2-input" data-row="" data-col="D" value=""/>
+            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps2-input"
+                   data-row="" data-col="D" value=""/>
           </div>
           <div>
             <label class="text-xs text-[#808000]">Set 3</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps3-input" data-row="" data-col="E" value=""/>
+            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps3-input"
+                   data-row="" data-col="E" value=""/>
           </div>
           <div>
             <label class="text-xs text-[#808000]">Set 4</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps4-input" data-row="" data-col="F" value=""/>
+            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps4-input"
+                   data-row="" data-col="F" value=""/>
           </div>
         </div>
         <div class="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <label class="text-xs text-[#808000]">Pump</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 pump-input" data-row="" data-col="G" value=""/>
-          </div>
-          <div>
-            <label class="text-xs text-[#808000]">Healed</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 healed-input" data-row="" data-col="H" value=""/>
-          </div>
-          <div>
-            <label class="text-xs text-[#808000]">Pain</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 pain-input" data-row="" data-col="I" value=""/>
-          </div>
-        </div>
-      </div>
-    </template>
-
-    <script src="app.js"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js')
-          .catch(console.error);
-      }
-    </script>
-  </div>
-</body>
-</html>
+            <label class="text-xs text-[#808000]">Pump</
