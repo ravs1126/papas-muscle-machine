@@ -97,17 +97,14 @@ function renderExercises(entries, sheetName) {
     const pump   = values[8] || '';
     const healed = values[9] || '';
     const pain   = values[10] || '';
+    // Always use the sheet's column Q value for sets
     const setCountFromQ = values.length > 16 ? parseInt(values[16]) || 3 : 3;
 
     const repsMap = [r1, r2, r3, r4];
     const colMap  = ['E', 'F', 'G', 'H'];
 
-    const allZero = repsMap.every(r => parseFloat(r) === 0 || r === '' || r === null);
-    let numSets = allZero
-      ? setCountFromQ
-      : repsMap.filter(r => !isNaN(parseFloat(r)) && parseFloat(r) > 0).length;
-
-    if (numSets === 0) numSets = 3;
+    // Force numSets = setCountFromQ so UI reflects sheet value
+    const numSets = setCountFromQ;
 
     const clone = document.importNode(tpl, true);
     const nameEl = clone.querySelector('.exercise-name');
@@ -128,11 +125,11 @@ function renderExercises(entries, sheetName) {
     bind('.pain-input', pain, 'K');
 
     for (let i = 0; i < 4; i++) {
-      const input = clone.querySelector(`.reps${i + 1}-input`);
+      const input   = clone.querySelector(`.reps${i + 1}-input`);
       const wrapper = input?.closest('div');
       if (i < numSets) {
         if (input) {
-          input.value = repsMap[i];
+          input.value      = repsMap[i];
           input.dataset.row = rowNum;
           input.dataset.col = colMap[i];
         }
@@ -150,7 +147,7 @@ function renderExercises(entries, sheetName) {
 async function updateView() {
   if (!currentUser) return;
   const week = document.getElementById('week-select').value;
-  const day = document.getElementById('day-select').value;
+  const day  = document.getElementById('day-select').value;
   const filtered = extractDay(week, day);
   renderExercises(filtered, currentUser);
 }
@@ -174,7 +171,7 @@ window.addEventListener('DOMContentLoaded', () => {
         mainContent.style.display = 'block';
 
         document.getElementById('week-select').onchange = updateView;
-        document.getElementById('day-select').onchange = updateView;
+        document.getElementById('day-select').onchange  = updateView;
         updateView();
       } catch (err) {
         console.error('Failed to load sheet:', err);
