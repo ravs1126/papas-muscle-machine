@@ -1,7 +1,11 @@
-const CACHE_NAME = 'progress-pwa-v2';
+const CACHE_NAME = 'progress-pwa-v2'; // Update the cache version here to ensure a fresh start
 const APP_SHELL = [
-  '/', '/index.html', '/app.js', '/manifest.json',
-  '/icons/icon-192.png', '/icons/icon-512.png'
+  '/',
+  '/index.html',
+  '/app.js',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 self.addEventListener('install', evt =>
@@ -30,16 +34,16 @@ self.addEventListener('activate', evt =>
 self.addEventListener('fetch', evt => {
   const url = new URL(evt.request.url);
 
-  // 0. Navigation: network-first, fallback to cache
+  // 0. Navigation: Network-first, fall back to cache if network is down
   if (evt.request.mode === 'navigate') {
     evt.respondWith(
       fetch(evt.request)
         .then(res => {
           const copy = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('/index.html', copy));
+          caches.open(CACHE_NAME).then(cache => cache.put('/index.html', copy)); // Always cache the latest HTML
           return res;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(() => caches.match('/index.html')) // Serve from cache if network fails
     );
     return;
   }
@@ -62,7 +66,7 @@ self.addEventListener('fetch', evt => {
       fetch(evt.request)
         .then(res => {
           const copy = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(evt.request, copy));
+          caches.open(CACHE_NAME).then(cache => cache.put(evt.request, copy)); // Cache the read requests too
           return res;
         })
         .catch(() => caches.match(evt.request))
@@ -72,6 +76,6 @@ self.addEventListener('fetch', evt => {
 
   // 3. Cache-first for everything else
   evt.respondWith(
-    caches.match(evt.request).then(r => r || fetch(evt.request))
+    caches.match(evt.request).then(r => r || fetch(evt.request)) // Serve from cache if available, else fetch
   );
 });
