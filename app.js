@@ -4,7 +4,7 @@ const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
 const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I';
 
 let currentUser = null;
-let sheetCache = []; // store sheet rows for filtering
+let sheetCache = [];
 
 function urlFor(tab) {
   return `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(tab)}?key=${API_KEY}`;
@@ -41,7 +41,7 @@ async function initSelectors(sheetData) {
 
 function extractDay(week, day) {
   return sheetCache
-    .map((row, i) => ({ index: i + 2, values: row })) // offset for sheet row numbering
+    .map((row, i) => ({ index: i + 2, values: row }))
     .filter(entry =>
       entry.values[0] == week &&
       entry.values[1] == day &&
@@ -95,11 +95,13 @@ function renderExercises(entries, sheetName) {
     const pump   = values[8] || '';
     const healed = values[9] || '';
     const pain   = values[10] || '';
-    const setLogic = (values[13] || '').toLowerCase(); // Column N
 
-    let numSets = 3;
-    if (setLogic === '+1 set') numSets = 4;
-    else if (setLogic === '-1 set') numSets = 2;
+    const repsMap = [r1, r2, r3, r4];
+    const colMap  = ['E', 'F', 'G', 'H'];
+
+    // Only count rep cells that are numeric and > 0
+    let numSets = repsMap.filter(r => !isNaN(parseFloat(r)) && parseFloat(r) > 0).length;
+    if (numSets === 0) numSets = 3; // fallback default
 
     const clone = document.importNode(tpl, true);
     const nameEl = clone.querySelector('.exercise-name');
@@ -118,9 +120,6 @@ function renderExercises(entries, sheetName) {
     bind('.pump-input', pump, 'I');
     bind('.healed-input', healed, 'J');
     bind('.pain-input', pain, 'K');
-
-    const repsMap = [r1, r2, r3, r4];
-    const colMap = ['E', 'F', 'G', 'H'];
 
     for (let i = 0; i < 4; i++) {
       const input = clone.querySelector(`.reps${i + 1}-input`);
@@ -162,7 +161,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const fullSheet = await fetchSheet(currentUser);
         if (!fullSheet || fullSheet.length <= 1) throw new Error("Sheet is empty or missing header.");
 
-        sheetCache = fullSheet.slice(1); // skip header
+        sheetCache = fullSheet.slice(1);
         await initSelectors(sheetCache);
 
         loginScreen.style.display = 'none';
