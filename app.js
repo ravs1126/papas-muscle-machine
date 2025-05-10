@@ -85,9 +85,10 @@ function renderExercises(entries, sheetName) {
     const values = e.values;
     const rowNum = e.index;
 
-    // Catch bad rows early
+    // Skip invalid rows
     if (!values || values.length < 11 || typeof values[2] !== 'string' || values[2].trim() === '') return;
 
+    // Core values
     const name   = values[2] || '';
     const wt     = values[3] || '';
     const r1     = values[4] || '';
@@ -97,19 +98,21 @@ function renderExercises(entries, sheetName) {
     const pump   = values[8] || '';
     const healed = values[9] || '';
     const pain   = values[10] || '';
-    // Always use the sheet's column Q value for sets
+
+    // Compute sets: Week 1 always 4, subsequent weeks use Q value
     const setCountFromQ = values.length > 16 ? parseInt(values[16]) || 3 : 3;
+    const weekNum = parseInt(values[0]);
+    const numSets = (weekNum === 1 ? 4 : setCountFromQ);
 
     const repsMap = [r1, r2, r3, r4];
-    const colMap  = ['E', 'F', 'G', 'H'];
+    const colMap  = ['E','F','G','H'];
 
-    // Force numSets = setCountFromQ so UI reflects sheet value
-    const numSets = setCountFromQ;
-
+    // Instantiate card
     const clone = document.importNode(tpl, true);
     const nameEl = clone.querySelector('.exercise-name');
     if (nameEl) nameEl.textContent = name;
 
+    // Bind generic inputs
     function bind(sel, val, col) {
       const inp = clone.querySelector(sel);
       if (!inp) return;
@@ -117,15 +120,15 @@ function renderExercises(entries, sheetName) {
       inp.dataset.row = rowNum;
       inp.dataset.col = col;
     }
-
     bind('.name-input', name, 'C');
     bind('.weight-input', wt, 'D');
     bind('.pump-input', pump, 'I');
     bind('.healed-input', healed, 'J');
     bind('.pain-input', pain, 'K');
 
+    // Render exactly numSets blocks
     for (let i = 0; i < 4; i++) {
-      const input   = clone.querySelector(`.reps${i + 1}-input`);
+      const input   = clone.querySelector(`.reps${i+1}-input`);
       const wrapper = input?.closest('div');
       if (i < numSets) {
         if (input) {
