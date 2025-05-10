@@ -94,8 +94,8 @@ function renderExercises(entries, sheetName) {
     const pain   = values[10] || '';
 
     // Determine number of sets:
-    // Week 1 always 4;
-    // Week >=2 uses previous week's Q for that exercise/day
+    // Week 1 view always shows 4 sets;
+    // Week ≥ 2 inherits the raw Q-column value from the previous week's sheet (actual value)
     let numSets;
     if (currentWeek === 1) {
       numSets = 4;
@@ -105,10 +105,10 @@ function renderExercises(entries, sheetName) {
         r[1] === currentDay &&
         String(r[2]).trim() === name
       );
-      if (prevEntry) {
-        numSets = prevEntry.length > 16 ? parseInt(prevEntry[16], 10) || 3 : 3;
+      if (prevEntry && prevEntry.length > 16) {
+        numSets = parseInt(prevEntry[16], 10) || 3;
       } else {
-        numSets = 3;
+        numSets = 3; // fallback default
       }
     }
 
