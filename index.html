@@ -2,96 +2,65 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Workout PWA</title>
-
-  <!-- Tailwind for styling -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Manifest (relative path for project site) -->
-  <link rel="manifest" href="manifest.json?v=2" />
-
-  <!-- Favicon for GitHub Project Site -->
-  <link rel="icon" href="favicon.ico" type="image/x-icon" />
-
-  <!-- Fallback 1x1 transparent favicon -->
-  <link rel="icon" href="data:image/x-icon;base64,AA==" />
 </head>
-
-<body class="bg-black p-4 relative">
-
-  <!-- Login screen -->
-  <div id="login-screen" class="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50">
-    <img src="assets/profile-logo.png" alt="Select Profile" class="w-48 h-auto mb-4" />
-    <div class="space-y-4">
-      <button data-user="Ravi" class="px-6 py-3 bg-green-600 text-white rounded uppercase font-bold">Ravi</button>
-      <button data-user="Rueben" class="px-6 py-3 bg-green-600 text-white rounded uppercase font-bold">Rueben</button>
-      <button data-user="Dylan" class="px-6 py-3 bg-green-600 text-white rounded uppercase font-bold">Dylan</button>
-    </div>
+<body class="bg-gray-100 p-4">
+  <!-- Login Screen -->
+  <div id="login-screen" class="flex flex-col items-center justify-center h-screen">
+    <h1 class="text-2xl mb-4">Select User</h1>
+    <button data-user="Sheet1" class="px-4 py-2 bg-blue-500 text-white rounded mb-2">User A</button>
+    <button data-user="Sheet2" class="px-4 py-2 bg-blue-500 text-white rounded">User B</button>
   </div>
 
-  <!-- Main content -->
+  <!-- Main Content -->
   <div id="main-content" class="hidden">
-    <div class="flex items-center justify-center mb-6 space-x-3">
-      <img src="assets/title-logo.png" alt="App Logo" class="h-12 w-12" />
-      <h1 class="text-2xl font-bold text-white">PAPAS MUSCLE MACHINE</h1>
-      <img src="assets/title-logo.png" alt="App Logo" class="h-12 w-12" />
+    <div class="flex space-x-4 mb-4">
+      <select id="week-select" class="p-2 border rounded"></select>
+      <select id="day-select" class="p-2 border rounded"></select>
     </div>
-
-    <div class="flex space-x-4 mb-6">
-      <div class="flex-1">
-        <label class="block mb-1 font-medium text-white">Week:</label>
-        <select id="week-select" class="w-full p-2 border rounded bg-gray-800 text-white"></select>
-      </div>
-      <div class="flex-1">
-        <label class="block mb-1 font-medium text-white">Day:</label>
-        <select id="day-select" class="w-full p-2 border rounded bg-gray-800 text-white"></select>
-      </div>
-    </div>
-
     <div id="exercise-list" class="space-y-4"></div>
+  </div>
 
-    <button id="add-card-btn"
-      class="fixed bottom-4 right-4 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg">
-      +
-    </button>
-
-    <!-- Exercise Card Template -->
-    <template id="exercise-card-template">
+  <!-- Exercise Card Template -->
+  <template id="exercise-card-template">
       <div class="bg-gray-50 p-4 rounded-lg shadow">
+        <!-- Exercise name heading -->
+        <h3 class="exercise-name text-xl font-semibold mb-2"></h3>
         <div class="flex items-center mb-4 space-x-4 w-full">
           <div class="flex-1">
             <label class="text-xs text-[#808000]">Exercise</label>
             <input type="text" class="w-full bg-[#454545] text-[#00FF00] font-bold rounded px-2 py-1 name-input"
-              data-row="" data-col="A" value="" />
+              data-row="" data-col="C" value="" />
           </div>
           <div class="flex flex-col">
             <label class="text-xs text-[#808000]">Weight</label>
             <input type="number" class="w-20 bg-[#454545] text-white rounded px-2 py-1 weight-input"
-              data-row="" data-col="B" placeholder="lbs" value="" />
+              data-row="" data-col="D" placeholder="lbs" value="" />
           </div>
         </div>
 
-        <div class="grid grid-cols-4 gap-4 mb-4 text-sm">
+        <div class="grid grid-cols-4 gap-4 mb-4 text-sm sets-container">
           <div>
             <label class="text-xs text-[#808000]">Set 1</label>
             <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps1-input"
-              data-row="" data-col="C" value="" />
+              data-row="" data-col="E" value="" />
           </div>
           <div>
             <label class="text-xs text-[#808000]">Set 2</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps2-input"
-              data-row="" data-col="D" value="" />
+            <input type="number" class="w-full bg[#454545] text-white rounded px-2 py-1 reps2-input"
+              data-row="" data-col="F" value="" />
           </div>
           <div>
             <label class="text-xs text-[#808000]">Set 3</label>
             <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps3-input"
-              data-row="" data-col="E" value="" />
+              data-row="" data-col="G" value="" />
           </div>
           <div>
             <label class="text-xs text-[#808000]">Set 4</label>
             <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps4-input"
-              data-row="" data-col="F" value="" />
+              data-row="" data-col="H" value="" />
           </div>
         </div>
 
@@ -99,33 +68,23 @@
           <div>
             <label class="text-xs text-[#808000]">Pump</label>
             <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 pump-input"
-              data-row="" data-col="G" value="" />
+              data-row="" data-col="I" value="" />
           </div>
           <div>
             <label class="text-xs text-[#808000]">Healed</label>
             <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 healed-input"
-              data-row="" data-col="H" value="" />
+              data-row="" data-col="J" value="" />
           </div>
           <div>
             <label class="text-xs text-[#808000]">Pain</label>
             <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 pain-input"
-              data-row="" data-col="I" value="" />
+              data-row="" data-col="K" value="" />
           </div>
         </div>
       </div>
     </template>
 
-    <!-- Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js')
-          .then(reg => console.log("🟢 Service Worker registered:", reg))
-          .catch(err => console.error("❌ Service Worker registration failed:", err));
-      }
-    </script>
-
-    <!-- App logic -->
-    <script src="app.js"></script>
-  </div>
+  <!-- Load App Logic -->
+  <script src="app.js"></script>
 </body>
 </html>
