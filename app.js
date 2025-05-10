@@ -92,6 +92,8 @@ function attachInputs(sheetName) {
 
 function createDropdown(options, selectedValue, rowNum, col) {
   const sel = document.createElement('select');
+    // apply boxed styling like the number inputs
+  sel.className = 'w-20 bg-[#454545] text-white rounded px-2 py-1';
   options.forEach(opt => {
     const o = document.createElement('option');
     o.value = opt.value;
