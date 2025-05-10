@@ -43,7 +43,7 @@ async function initSelectors(sheetData) {
 // Extract rows that match selected Week & Day
 function extractDay(week, day) {
   return sheetCache
-    .map((row, i) => ({ index: i + 1, values: row }))
+    .map((row, i) => ({ index: i + 2, values: row })) // add 2 to match actual sheet row (since row 1 was skipped)
     .filter(entry =>
       entry.values[0] == week &&
       entry.values[1] == day &&
@@ -135,7 +135,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       mainContent.style.display = 'block';
 
       try {
-        sheetCache = await fetchSheet(currentUser);
+        const fullSheet = await fetchSheet(currentUser);
+        sheetCache = fullSheet.slice(1); // 👈 skip header row
         await initSelectors(sheetCache);
         document.getElementById('week-select').onchange = updateView;
         document.getElementById('day-select').onchange = updateView;
