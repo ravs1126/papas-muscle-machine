@@ -25,18 +25,15 @@ async function initSelectors(sheetData) {
 
   const weekSet = new Set();
   sheetData.forEach(row => {
-    if (row[0] && !isNaN(row[0])) {
-      weekSet.add(row[0]);
-    }
+    if (row[0] && !isNaN(row[0])) weekSet.add(row[0]);
   });
 
-  [...weekSet].sort((a, b) => parseInt(a) - parseInt(b)).forEach(w => {
-    wSel.append(new Option(`Week ${w}`, w));
-  });
+  [...weekSet].sort((a, b) => parseInt(a) - parseInt(b))
+    .forEach(w => wSel.append(new Option(`Week ${w}`, w)));
 
-  ['1','2','3','4','5','6','7'].forEach(d => {
-    dSel.append(new Option(`Day ${d}`, d));
-  });
+  ['1','2','3','4','5','6','7'].forEach(d =>
+    dSel.append(new Option(`Day ${d}`, d))
+  );
 }
 
 function extractDay(week, day) {
@@ -45,8 +42,7 @@ function extractDay(week, day) {
     .filter(entry =>
       entry.values[0] == week &&
       entry.values[1] == day &&
-      typeof entry.values[2] === 'string' &&
-      entry.values[2].trim() !== ''
+      typeof entry.values[2] === 'string' && entry.values[2].trim() !== ''
     );
 }
 
@@ -59,11 +55,9 @@ function attachInputs(sheetName) {
       const value = e.target.value;
       try {
         await fetch(WRITE_URL, {
-          method: 'POST',
-          mode: 'no-cors',
+          method: 'POST', mode: 'no-cors',
           body: JSON.stringify({ sheet: sheetName, cell: `${col}${row}`, value })
         });
-        console.log(`✔ Updated ${sheetName}!${col}${row} → ${value}`);
       } catch (err) {
         console.error(err);
         alert('Save failed—see console.');
@@ -80,15 +74,15 @@ function renderExercises(entries, sheetName) {
     return;
   }
 
-  const tpl = document.getElementById('exercise-card-template').content;
+  const currentWeek = parseInt(document.getElementById('week-select').value, 10);
+  const currentDay  = document.getElementById('day-select').value;
+  const tpl         = document.getElementById('exercise-card-template').content;
+
   entries.forEach(e => {
     const values = e.values;
     const rowNum = e.index;
+    if (!values || values.length < 11) return;
 
-    // Skip invalid rows
-    if (!values || values.length < 11 || typeof values[2] !== 'string' || values[2].trim() === '') return;
-
-    // Core values
     const name   = values[2] || '';
     const wt     = values[3] || '';
     const r1     = values[4] || '';
@@ -99,24 +93,34 @@ function renderExercises(entries, sheetName) {
     const healed = values[9] || '';
     const pain   = values[10] || '';
 
-    // Compute sets: Week 1 always 4, subsequent weeks use Q value
-    const setCountFromQ = values.length > 16 ? parseInt(values[16]) || 3 : 3;
-    const weekNum = parseInt(values[0]);
-    const numSets = (weekNum === 1 ? 4 : setCountFromQ);
+    // Week 1 always 4 sets; from week 2+, use previous week's Q value
+    let numSets;
+    if (currentWeek === 1) {
+      numSets = 4;
+    } else {
+      // find prev week entry matching day & exercise
+      const prevEntry = sheetCache.find(r =>
+        parseInt(r[0],10) === currentWeek - 1 &&
+        r[1] === currentDay &&
+        String(r[2]).trim() === name
+      );
+      const prevQ = prevEntry && prevEntry.length > 16
+        ? parseInt(prevEntry[16],10) || 3
+        : 3;
+      numSets = prevQ;
+    }
 
     const repsMap = [r1, r2, r3, r4];
     const colMap  = ['E','F','G','H'];
 
-    // Instantiate card
     const clone = document.importNode(tpl, true);
     const nameEl = clone.querySelector('.exercise-name');
     if (nameEl) nameEl.textContent = name;
 
-    // Bind generic inputs
     function bind(sel, val, col) {
       const inp = clone.querySelector(sel);
       if (!inp) return;
-      inp.value = val;
+      inp.value      = val;
       inp.dataset.row = rowNum;
       inp.dataset.col = col;
     }
@@ -126,7 +130,6 @@ function renderExercises(entries, sheetName) {
     bind('.healed-input', healed, 'J');
     bind('.pain-input', pain, 'K');
 
-    // Render exactly numSets blocks
     for (let i = 0; i < 4; i++) {
       const input   = clone.querySelector(`.reps${i+1}-input`);
       const wrapper = input?.closest('div');
@@ -156,30 +159,22 @@ async function updateView() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  const loginScreen = document.getElementById('login-screen');
-  const mainContent = document.getElementById('main-content');
-
-  loginScreen.querySelectorAll('button[data-user]').forEach(btn => {
-    btn.addEventListener('click', async () => {
+  document.getElementById('login-screen')
+    .querySelectorAll('button[data-user]')
+    .forEach(btn => btn.addEventListener('click', async () => {
       currentUser = btn.dataset.user;
-
       try {
-        const fullSheet = await fetchSheet(currentUser);
-        if (!fullSheet || fullSheet.length <= 1) throw new Error("Sheet is empty or missing header.");
-
-        sheetCache = fullSheet.slice(1);
+        const full = await fetchSheet(currentUser);
+        sheetCache = full.slice(1);
         await initSelectors(sheetCache);
-
-        loginScreen.style.display = 'none';
-        mainContent.style.display = 'block';
-
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('main-content').style.display = 'block';
         document.getElementById('week-select').onchange = updateView;
         document.getElementById('day-select').onchange  = updateView;
         updateView();
       } catch (err) {
-        console.error('Failed to load sheet:', err);
+        console.error(err);
         document.getElementById('exercise-list').innerHTML = '<p class="text-center text-red-500">Failed to load sheet.</p>';
       }
-    });
-  });
+    }));
 });
