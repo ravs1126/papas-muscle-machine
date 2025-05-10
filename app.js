@@ -16,54 +16,32 @@ function urlFor(tab) {
          `/values/${encodeURIComponent(tab)}?key=${API_KEY}`;
 }
 
-function metadataUrl() {
-  return `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}` +
-         `?fields=sheets(properties(title))&key=${API_KEY}`;
+function fetchSheet(tab) {
+  return fetch(urlFor(tab))
+    .then(res => res.json())
+    .then(json => json.values || []);
 }
 
-async function fetchSheetNames() {
-  const res = await fetch(metadataUrl());
-  if (!res.ok) throw new Error(`Metadata API error: ${res.status}`);
-  const json = await res.json();
-  return json.sheets.map(s => s.properties.title);
-}
-
-async function fetchSheet(tab) {
-  const url = urlFor(tab);
-  console.log('Fetching:', url);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Sheets API error: ${res.status}`);
-  const json = await res.json();
-  return json.values || [];
-}
-
-async function initSelectors() {
+function initSelectors() {
   const wSel = document.getElementById('week-select');
   const dSel = document.getElementById('day-select');
   wSel.innerHTML = '';
   dSel.innerHTML = '';
+
+  // Only one sheet per user now
+  wSel.append(new Option("N/A", "N/A"));
+
   ['Day 1','Day 2','Day 3','Day 4','Day 5','Day 6','Day 7']
     .forEach(d => dSel.append(new Option(d, d)));
-  try {
-    const titles = await fetchSheetNames();
-    const prefix = currentUser + ' ';
-    const weeks = titles
-      .filter(t => t.startsWith(prefix) && /^.+\sWeek\s+\d+$/i.test(t))
-      .map(t => t.replace(prefix, ''))
-      .sort((a,b) => parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]));
-    weeks.forEach(w => wSel.append(new Option(w, w)));
-  } catch (err) {
-    console.error('Failed to load sheet names:', err);
-  }
 }
 
 function extractDay(rows, label) {
-  const start = rows.findIndex(r => typeof r[0]==='string' && r[0].trim().startsWith(label));
-  if (start<0) return [];
+  const start = rows.findIndex(r => typeof r[2] === 'string' && r[2].trim().startsWith(label));
+  if (start < 0) return [];
   const out = [];
-  for (let i=start+1;i<rows.length;i++){
-    if (typeof rows[i][0]==='string' && /^Day\s*\d+/.test(rows[i][0].trim())) break;
-    if (rows[i].some(c=>c!=='')) out.push({index:i,values:rows[i]});
+  for (let i = start + 1; i < rows.length; i++) {
+    if (typeof rows[i][2] === 'string' && /^Day\s*\d+/.test(rows[i][2].trim())) break;
+    if (rows[i].some(c => c !== '')) out.push({ index: i, values: rows[i] });
   }
   return out;
 }
@@ -73,8 +51,8 @@ function attachInputs(sheetName) {
     '.name-input, .weight-input, .reps1-input, .reps2-input, .reps3-input, .reps4-input, .pump-input, .healed-input, .pain-input'
   ).forEach(input => {
     input.addEventListener('change', async e => {
-      const {row,col} = e.target.dataset;
-      const value     = e.target.value;
+      const { row, col } = e.target.dataset;
+      const value = e.target.value;
       try {
         await fetch(WRITE_URL, {
           method: 'POST',
@@ -91,7 +69,7 @@ function attachInputs(sheetName) {
 }
 
 function renderExercises(entries, sheetName) {
-  const filtered = entries.filter(e => typeof e.values[0] === 'string' && e.values[0].toLowerCase().trim() !== 'execuse');
+  const filtered = entries.filter(e => typeof e.values[2] === 'string' && e.values[2].toLowerCase().trim() !== 'execuse');
   const container = document.getElementById('exercise-list');
   container.innerHTML = '';
   if (!filtered.length) {
@@ -129,9 +107,8 @@ function renderExercises(entries, sheetName) {
 async function updateView() {
   if (!currentUser) return;
   try {
-    const week = document.getElementById('week-select').value;
     const day = document.getElementById('day-select').value;
-    const sheetName = `${currentUser} ${week}`;
+    const sheetName = currentUser;
     const all = await fetchSheet(sheetName);
     renderExercises(extractDay(all, day), sheetName);
   } catch (err) {
@@ -148,7 +125,7 @@ window.addEventListener('DOMContentLoaded', () => {
       currentUser = btn.dataset.user;
       loginScreen.style.display = 'none';
       mainContent.style.display = 'block';
-      await initSelectors();
+      initSelectors();
       document.getElementById('week-select').onchange = updateView;
       document.getElementById('day-select').onchange = updateView;
       updateView();
