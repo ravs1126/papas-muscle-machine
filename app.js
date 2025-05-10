@@ -4,46 +4,53 @@ const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
 const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I';
 
 let currentUser = null;
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  deferredPrompt.prompt();
-});
+let sheetCache = []; // store sheet rows for filtering
 
 function urlFor(tab) {
-  return `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}` +
-         `/values/${encodeURIComponent(tab)}?key=${API_KEY}`;
+  return `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(tab)}?key=${API_KEY}`;
 }
 
-function fetchSheet(tab) {
-  return fetch(urlFor(tab))
-    .then(res => res.json())
-    .then(json => json.values || []);
+async function fetchSheet(tab) {
+  const res = await fetch(urlFor(tab));
+  if (!res.ok) throw new Error(`Fetch error: ${res.status}`);
+  const json = await res.json();
+  return json.values || [];
 }
 
-function initSelectors() {
+// Populate Week and Day selectors dynamically from the actual sheet rows
+async function initSelectors(sheetData) {
   const wSel = document.getElementById('week-select');
   const dSel = document.getElementById('day-select');
   wSel.innerHTML = '';
   dSel.innerHTML = '';
 
-  // Only one sheet per user now
-  wSel.append(new Option("N/A", "N/A"));
+  const weekSet = new Set();
+  sheetData.forEach(row => {
+    if (row[0] && !isNaN(row[0])) {
+      weekSet.add(row[0]);
+    }
+  });
 
-  ['Day 1','Day 2','Day 3','Day 4','Day 5','Day 6','Day 7']
-    .forEach(d => dSel.append(new Option(d, d)));
+  [...weekSet].sort((a, b) => parseInt(a) - parseInt(b)).forEach(w => {
+    wSel.append(new Option(`Week ${w}`, w));
+  });
+
+  ['1','2','3','4','5','6','7'].forEach(d => {
+    dSel.append(new Option(`Day ${d}`, d));
+  });
 }
 
-function extractDay(rows, label) {
-  const start = rows.findIndex(r => typeof r[2] === 'string' && r[2].trim().startsWith(label));
-  if (start < 0) return [];
-  const out = [];
-  for (let i = start + 1; i < rows.length; i++) {
-    if (typeof rows[i][2] === 'string' && /^Day\s*\d+/.test(rows[i][2].trim())) break;
-    if (rows[i].some(c => c !== '')) out.push({ index: i, values: rows[i] });
-  }
-  return out;
+// Extract rows that match selected Week & Day
+function extractDay(week, day) {
+  return sheetCache
+    .map((row, i) => ({ index: i + 1, values: row }))
+    .filter(entry =>
+      entry.values[0] == week &&
+      entry.values[1] == day &&
+      typeof entry.values[2] === 'string' &&
+      !entry.values[2].toLowerCase().includes('day') &&
+      entry.values[2].trim() !== ''
+    );
 }
 
 function attachInputs(sheetName) {
@@ -69,20 +76,19 @@ function attachInputs(sheetName) {
 }
 
 function renderExercises(entries, sheetName) {
-  const filtered = entries.filter(e => typeof e.values[2] === 'string' && e.values[2].toLowerCase().trim() !== 'execuse');
   const container = document.getElementById('exercise-list');
   container.innerHTML = '';
-  if (!filtered.length) {
-    container.innerHTML = '<p class="text-center text-gray-500">No exercises for this day.</p>';
+  if (!entries.length) {
+    container.innerHTML = '<p class="text-center text-gray-500">No exercises for this day/week.</p>';
     return;
   }
+
   const tpl = document.getElementById('exercise-card-template').content;
-  filtered.forEach(e => {
-    const [,,name = '', wt = '', r1 = '', r2 = '', r3 = '', r4 = '', pump = '', healed = '', pain = ''] = e.values;
+  entries.forEach(e => {
+    const [, , name = '', wt = '', r1 = '', r2 = '', r3 = '', r4 = '', pump = '', healed = '', pain = ''] = e.values;
     const clone = document.importNode(tpl, true);
-    const nameEl = clone.querySelector('.exercise-name');
-    if (nameEl) nameEl.textContent = name;
-    const rowNum = e.index + 1;
+    const rowNum = e.index;
+
     function bind(sel, val, col) {
       const inp = clone.querySelector(sel);
       if (!inp) return;
@@ -90,6 +96,7 @@ function renderExercises(entries, sheetName) {
       inp.dataset.row = rowNum;
       inp.dataset.col = col;
     }
+
     bind('.name-input', name, 'C');
     bind('.weight-input', wt, 'D');
     bind('.reps1-input', r1, 'E');
@@ -99,36 +106,44 @@ function renderExercises(entries, sheetName) {
     bind('.pump-input', pump, 'I');
     bind('.healed-input', healed, 'J');
     bind('.pain-input', pain, 'K');
+
+    const nameEl = clone.querySelector('.exercise-name');
+    if (nameEl) nameEl.textContent = name;
+
     container.appendChild(clone);
   });
+
   attachInputs(sheetName);
 }
 
 async function updateView() {
   if (!currentUser) return;
-  try {
-    const day = document.getElementById('day-select').value;
-    const sheetName = currentUser;
-    const all = await fetchSheet(sheetName);
-    renderExercises(extractDay(all, day), sheetName);
-  } catch (err) {
-    console.error(err);
-    document.getElementById('exercise-list').innerHTML = '<p class="text-center text-red-500">Error loading data.</p>';
-  }
+  const week = document.getElementById('week-select').value;
+  const day = document.getElementById('day-select').value;
+  const filtered = extractDay(week, day);
+  renderExercises(filtered, currentUser);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   const loginScreen = document.getElementById('login-screen');
   const mainContent = document.getElementById('main-content');
+
   loginScreen.querySelectorAll('button[data-user]').forEach(btn => {
     btn.addEventListener('click', async () => {
       currentUser = btn.dataset.user;
       loginScreen.style.display = 'none';
       mainContent.style.display = 'block';
-      initSelectors();
-      document.getElementById('week-select').onchange = updateView;
-      document.getElementById('day-select').onchange = updateView;
-      updateView();
+
+      try {
+        sheetCache = await fetchSheet(currentUser);
+        await initSelectors(sheetCache);
+        document.getElementById('week-select').onchange = updateView;
+        document.getElementById('day-select').onchange = updateView;
+        updateView();
+      } catch (err) {
+        console.error('Failed to load sheet:', err);
+        document.getElementById('exercise-list').innerHTML = '<p class="text-center text-red-500">Failed to load sheet.</p>';
+      }
     });
   });
 });
