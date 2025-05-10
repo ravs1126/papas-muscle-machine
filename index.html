@@ -1,131 +1,194 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Workout PWA</title>
+// ─── CONFIG ───
+const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxI6ZSAearvsukTH2Jo-oiJv1SR2htEn2EqrqoY8t3mm0tFdlNLS1cQOy7a4vEORkQSPw/exec';
+const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
+const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I';
 
-  <!-- Tailwind for styling -->
-  <script src="https://cdn.tailwindcss.com"></script>
+// Dropdown options with descriptions
+const pumpOptions = [
+  {value:1, label:'1 - Very light pump, muscle barely engaged'},
+  {value:2, label:'2 - Mild pump, ready for more volume'},
+  {value:3, label:'3 - Solid pump, strong/full (ideal)'},
+  {value:4, label:'4 - Heavy pumpa, nearing fatigue'},
+  {value:5, label:'5 - Max pump, risk of discomfort'}
+];
+const healedOptions = [
+  {value:1, label:'1 - Actively sore, hurts to move'},
+  {value:2, label:'2 - Sore but trainable (heavily fatigued)'},
+  {value:3, label:'3 - Minor DOMS, just tightness'},
+  {value:4, label:'4 - Mostly recovered, no soreness'},
+  {value:5, label:'5 - Fully recovered, fresh and energized'}
+];
+const painOptions = [
+  {value:0, label:'0 - No discomfort'},
+  {value:1, label:'1 - Minor ache, no impact on performance'},
+  {value:2, label:'2 - Noticeable pain, affecting execution'},
+  {value:3, label:'3 - Sharp pain, risking injury'}
+];
 
-  <!-- Manifest (relative path for project site) -->
-  <link rel="manifest" href="manifest.json?v=2" />
+let currentUser = null;
+let sheetCache = [];
 
-  <!-- Favicon for GitHub Project Site -->
-  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+function urlFor(tab) {
+  return `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(tab)}?key=${API_KEY}`;
+}
 
-  <!-- Fallback 1x1 transparent favicon -->
-  <link rel="icon" href="data:image/x-icon;base64,AA==" />
-</head>
+async function fetchSheet(tab) {
+  const res = await fetch(urlFor(tab));
+  if (!res.ok) throw new Error(`Fetch error: ${res.status}`);
+  const json = await res.json();
+  return json.values || [];
+}
 
-<body class="bg-black p-4 relative">
+async function initSelectors(sheetData) {
+  const wSel = document.getElementById('week-select');
+  const dSel = document.getElementById('day-select');
+  wSel.innerHTML = '';
+  dSel.innerHTML = '';
 
-  <!-- Login screen -->
-  <div id="login-screen" class="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50">
-    <img src="assets/profile-logo.png" alt="Select Profile" class="w-48 h-auto mb-4" />
-    <div class="space-y-4">
-      <button data-user="Ravi" class="px-6 py-3 bg-green-600 text-white rounded uppercase font-bold">Ravi</button>
-      <button data-user="Rueben" class="px-6 py-3 bg-green-600 text-white rounded uppercase font-bold">Rueben</button>
-      <button data-user="Dylan" class="px-6 py-3 bg-green-600 text-white rounded uppercase font-bold">Dylan</button>
-    </div>
-  </div>
+  const weekSet = new Set();
+  sheetData.forEach(row => {
+    if (row[0] && !isNaN(row[0])) weekSet.add(row[0]);
+  });
 
-  <!-- Main content -->
-  <div id="main-content" class="hidden">
-    <div class="flex items-center justify-center mb-6 space-x-3">
-      <img src="assets/title-logo.png" alt="App Logo" class="h-12 w-12" />
-      <h1 class="text-2xl font-bold text-white">PAPAS MUSCLE MACHINE</h1>
-      <img src="assets/title-logo.png" alt="App Logo" class="h-12 w-12" />
-    </div>
+  [...weekSet].sort((a, b) => parseInt(a) - parseInt(b))
+    .forEach(w => wSel.append(new Option(`Week ${w}`, w)));
 
-    <div class="flex space-x-4 mb-6">
-      <div class="flex-1">
-        <label class="block mb-1 font-medium text-white">Week:</label>
-        <select id="week-select" class="w-full p-2 border rounded bg-gray-800 text-white"></select>
-      </div>
-      <div class="flex-1">
-        <label class="block mb-1 font-medium text-white">Day:</label>
-        <select id="day-select" class="w-full p-2 border rounded bg-gray-800 text-white"></select>
-      </div>
-    </div>
+  ['1','2','3','4','5','6','7'].forEach(d =>
+    dSel.append(new Option(`Day ${d}`, d))
+  );
+}
 
-    <div id="exercise-list" class="space-y-4"></div>
+function extractDay(week, day) {
+  return sheetCache
+    .map((row, i) => ({ index: i + 2, values: row }))
+    .filter(entry =>
+      entry.values[0] == week &&
+      entry.values[1] == day &&
+      typeof entry.values[2] === 'string' && entry.values[2].trim() !== ''
+    );
+}
 
-    <button id="add-card-btn"
-      class="fixed bottom-4 right-4 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg">
-      +
-    </button>
+function attachInputs(sheetName) {
+  document.querySelectorAll('select, .name-input, .weight-input, .reps1-input, .reps2-input, .reps3-input, .reps4-input')
+    .forEach(input => {
+      input.addEventListener('change', async e => {
+        const { row, col } = e.target.dataset;
+        const value = e.target.value;
+        try {
+          await fetch(WRITE_URL, {
+            method: 'POST', mode: 'no-cors',
+            body: JSON.stringify({ sheet: sheetName, cell: `${col}${row}`, value })
+          });
+        } catch (err) {
+          console.error(err);
+          alert('Save failed—see console.');
+        }
+      });
+    });
+}
 
-    <!-- Exercise Card Template -->
-    <template id="exercise-card-template">
-      <div class="bg-gray-50 p-4 rounded-lg shadow">
-        <div class="flex items-center mb-4 space-x-4 w-full">
-          <div class="flex-1">
-            <label class="text-xs text-[#808000]">Exercise</label>
-            <input type="text" class="w-full bg-[#454545] text-[#00FF00] font-bold rounded px-2 py-1 name-input"
-              data-row="" data-col="A" value="" />
-          </div>
-          <div class="flex flex-col">
-            <label class="text-xs text-[#808000]">Weight</label>
-            <input type="number" class="w-20 bg-[#454545] text-white rounded px-2 py-1 weight-input"
-              data-row="" data-col="B" placeholder="lbs" value="" />
-          </div>
-        </div>
+function createDropdown(options, selectedValue, rowNum, col) {
+  const sel = document.createElement('select');
+  options.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt.value;
+    o.textContent = opt.label;
+    if (opt.value == selectedValue) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.dataset.row = rowNum;
+  sel.dataset.col = col;
+  return sel;
+}
 
-        <div class="grid grid-cols-4 gap-4 mb-4 text-sm">
-          <div>
-            <label class="text-xs text-[#808000]">Set 1</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps1-input"
-              data-row="" data-col="C" value="" />
-          </div>
-          <div>
-            <label class="text-xs text-[#808000]">Set 2</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps2-input"
-              data-row="" data-col="D" value="" />
-          </div>
-          <div>
-            <label class="text-xs text-[#808000]">Set 3</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps3-input"
-              data-row="" data-col="E" value="" />
-          </div>
-          <div>
-            <label class="text-xs text-[#808000]">Set 4</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps4-input"
-              data-row="" data-col="F" value="" />
-          </div>
-        </div>
+function renderExercises(entries, sheetName) {
+  const container = document.getElementById('exercise-list');
+  container.innerHTML = '';
+  if (!entries.length) {
+    container.innerHTML = '<p class="text-center text-gray-500">No exercises for this day/week.</p>';
+    return;
+  }
 
-        <div class="grid grid-cols-3 gap-4 text-sm">
-          <div>
-            <label class="text-xs text-[#808000]">Pump</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 pump-input"
-              data-row="" data-col="G" value="" />
-          </div>
-          <div>
-            <label class="text-xs text-[#808000]">Healed</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 healed-input"
-              data-row="" data-col="H" value="" />
-          </div>
-          <div>
-            <label class="text-xs text-[#808000]">Pain</label>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 pain-input"
-              data-row="" data-col="I" value="" />
-          </div>
-        </div>
-      </div>
-    </template>
+  const currentWeek = parseInt(document.getElementById('week-select').value, 10);
+  const currentDay  = document.getElementById('day-select').value;
+  const tpl         = document.getElementById('exercise-card-template').content;
 
-    <!-- Service Worker Registration -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js')
-          .then(reg => console.log("🟢 Service Worker registered:", reg))
-          .catch(err => console.error("❌ Service Worker registration failed:", err));
+  entries.forEach(e => {
+    const values = e.values;
+    const rowNum = e.index;
+    if (!values || values.length < 11) return;
+
+    const [week, day, name, wt, r1, r2, r3, r4, pump, healed, pain] = values;
+
+    // Determine numSets same logic as before...
+    let numSets = currentWeek === 1 ? 4 : (
+      (() => {
+        const prevEntry = sheetCache.find(r => parseInt(r[0],10) === currentWeek-1 && r[1]===currentDay && String(r[2]).trim()===name);
+        return prevEntry && prevEntry.length>16 ? parseInt(prevEntry[16],10)||3 : 3;
+      })()
+    );
+
+    const repsMap = [r1,r2,r3,r4];
+    const colMap  = ['E','F','G','H'];
+
+    const clone = document.importNode(tpl, true);
+    clone.querySelector('.exercise-name').textContent = name;
+    clone.querySelector('.weight-input').value = wt;
+    clone.querySelector('.weight-input').dataset = { row: rowNum, col: 'D' };
+
+    // Render reps as before
+    for(let i=0;i<4;i++){
+      const inp = clone.querySelector(`.reps${i+1}-input`);
+      const wrap = inp.closest('div');
+      if(i<numSets) {
+        inp.value = repsMap[i];
+        inp.dataset = { row: rowNum, col: colMap[i] };
+      } else wrap.remove();
+    }
+
+    // Replace pump/healed/pain inputs with dropdowns
+    const pumpEl   = clone.querySelector('.pump-input');
+    const healedEl = clone.querySelector('.healed-input');
+    const painEl   = clone.querySelector('.pain-input');
+
+    const pumpSel   = createDropdown(pumpOptions,   pump,   rowNum, 'I');
+    const healSel   = createDropdown(healedOptions, healed, rowNum, 'J');
+    const painSel   = createDropdown(painOptions,   pain,   rowNum, 'K');
+
+    pumpEl.replaceWith(pumpSel);
+    healedEl.replaceWith(healSel);
+    painEl.replaceWith(painSel);
+
+    container.appendChild(clone);
+  });
+
+  attachInputs(sheetName);
+}
+
+async function updateView() {
+  if (!currentUser) return;
+  const filtered = extractDay(
+    document.getElementById('week-select').value,
+    document.getElementById('day-select').value
+  );
+  renderExercises(filtered, currentUser);
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('#login-screen button[data-user]')
+    .forEach(btn=>btn.addEventListener('click',async()=>{
+      currentUser=btn.dataset.user;
+      try{
+        const full=await fetchSheet(currentUser);
+        sheetCache=full.slice(1);
+        await initSelectors(sheetCache);
+        document.getElementById('login-screen').style.display='none';
+        document.getElementById('main-content').style.display='block';
+        document.getElementById('week-select').onchange=updateView;
+        document.getElementById('day-select').onchange=updateView;
+        updateView();
+      }catch(err){console.error(err);
+        document.getElementById('exercise-list').innerHTML='<p class="text-center text-red-500">Failed to load sheet.</p>';
       }
-    </script>
-
-    <!-- App logic -->
-    <script src="app.js"></script>
-  </div>
-</body>
-</html>
+    }));
+});
