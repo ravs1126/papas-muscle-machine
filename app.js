@@ -17,7 +17,6 @@ async function fetchSheet(tab) {
   return json.values || [];
 }
 
-// Populate Week and Day selectors dynamically from the actual sheet rows
 async function initSelectors(sheetData) {
   const wSel = document.getElementById('week-select');
   const dSel = document.getElementById('day-select');
@@ -40,10 +39,9 @@ async function initSelectors(sheetData) {
   });
 }
 
-// Extract rows that match selected Week & Day
 function extractDay(week, day) {
   return sheetCache
-    .map((row, i) => ({ index: i + 2, values: row })) // add 2 to match actual sheet row (since row 1 was skipped)
+    .map((row, i) => ({ index: i + 2, values: row })) // offset for sheet row numbering
     .filter(entry =>
       entry.values[0] == week &&
       entry.values[1] == day &&
@@ -85,9 +83,27 @@ function renderExercises(entries, sheetName) {
 
   const tpl = document.getElementById('exercise-card-template').content;
   entries.forEach(e => {
-    const [, , name = '', wt = '', r1 = '', r2 = '', r3 = '', r4 = '', pump = '', healed = '', pain = ''] = e.values;
-    const clone = document.importNode(tpl, true);
+    const values = e.values;
     const rowNum = e.index;
+
+    const name   = values[2] || '';
+    const wt     = values[3] || '';
+    const r1     = values[4] || '';
+    const r2     = values[5] || '';
+    const r3     = values[6] || '';
+    const r4     = values[7] || '';
+    const pump   = values[8] || '';
+    const healed = values[9] || '';
+    const pain   = values[10] || '';
+    const setLogic = (values[13] || '').toLowerCase(); // Column N
+
+    let numSets = 3;
+    if (setLogic === '+1 set') numSets = 4;
+    else if (setLogic === '-1 set') numSets = 2;
+
+    const clone = document.importNode(tpl, true);
+    const nameEl = clone.querySelector('.exercise-name');
+    if (nameEl) nameEl.textContent = name;
 
     function bind(sel, val, col) {
       const inp = clone.querySelector(sel);
@@ -99,16 +115,26 @@ function renderExercises(entries, sheetName) {
 
     bind('.name-input', name, 'C');
     bind('.weight-input', wt, 'D');
-    bind('.reps1-input', r1, 'E');
-    bind('.reps2-input', r2, 'F');
-    bind('.reps3-input', r3, 'G');
-    bind('.reps4-input', r4, 'H');
     bind('.pump-input', pump, 'I');
     bind('.healed-input', healed, 'J');
     bind('.pain-input', pain, 'K');
 
-    const nameEl = clone.querySelector('.exercise-name');
-    if (nameEl) nameEl.textContent = name;
+    const repsMap = [r1, r2, r3, r4];
+    const colMap = ['E', 'F', 'G', 'H'];
+
+    for (let i = 0; i < 4; i++) {
+      const input = clone.querySelector(`.reps${i + 1}-input`);
+      const wrapper = input?.closest('div');
+      if (i < numSets) {
+        if (input) {
+          input.value = repsMap[i];
+          input.dataset.row = rowNum;
+          input.dataset.col = colMap[i];
+        }
+      } else if (wrapper) {
+        wrapper.remove();
+      }
+    }
 
     container.appendChild(clone);
   });
@@ -124,20 +150,24 @@ async function updateView() {
   renderExercises(filtered, currentUser);
 }
 
-window.addEventListener('DOMContentLoaded', async () => {
+window.addEventListener('DOMContentLoaded', () => {
   const loginScreen = document.getElementById('login-screen');
   const mainContent = document.getElementById('main-content');
 
   loginScreen.querySelectorAll('button[data-user]').forEach(btn => {
     btn.addEventListener('click', async () => {
       currentUser = btn.dataset.user;
-      loginScreen.style.display = 'none';
-      mainContent.style.display = 'block';
 
       try {
         const fullSheet = await fetchSheet(currentUser);
-        sheetCache = fullSheet.slice(1); // 👈 skip header row
+        if (!fullSheet || fullSheet.length <= 1) throw new Error("Sheet is empty or missing header.");
+
+        sheetCache = fullSheet.slice(1); // skip header
         await initSelectors(sheetCache);
+
+        loginScreen.style.display = 'none';
+        mainContent.style.display = 'block';
+
         document.getElementById('week-select').onchange = updateView;
         document.getElementById('day-select').onchange = updateView;
         updateView();
