@@ -11,6 +11,9 @@ function renderExercises(entries, sheetName) {
     const values = e.values;
     const rowNum = e.index;
 
+    // Catch bad rows early
+    if (!values || values.length < 11 || typeof values[2] !== 'string' || values[2].trim() === '') return;
+
     const name   = values[2] || '';
     const wt     = values[3] || '';
     const r1     = values[4] || '';
@@ -20,7 +23,7 @@ function renderExercises(entries, sheetName) {
     const pump   = values[8] || '';
     const healed = values[9] || '';
     const pain   = values[10] || '';
-    const setCountFromQ = parseInt(values[16]) || 3; // Column Q = index 16
+    const setCountFromQ = values.length > 16 ? parseInt(values[16]) || 3 : 3;
 
     const repsMap = [r1, r2, r3, r4];
     const colMap  = ['E', 'F', 'G', 'H'];
