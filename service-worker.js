@@ -1,4 +1,4 @@
-const CACHE_NAME = 'progress-pwa-v2'; // Update the cache version here to ensure a fresh start
+const CACHE_NAME = 'progress-pwa-v3'; // Update the cache version here to ensure a fresh start
 const APP_SHELL = [
   './',
   './index.html',
