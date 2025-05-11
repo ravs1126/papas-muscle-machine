@@ -92,7 +92,7 @@ function attachInputs(sheetName) {
 
 function createDropdown(options, selectedValue, rowNum, col) {
   const sel = document.createElement('select');
-    // apply boxed styling like the number inputs
+  // apply boxed styling like the number inputs
   sel.className = 'w-20 bg-[#454545] text-white rounded px-2 py-1';
   options.forEach(opt => {
     const o = document.createElement('option');
@@ -196,6 +196,19 @@ async function updateView() {
   const day = document.getElementById('day-select').value;
   const filtered = extractDay(week, day);
   renderExercises(filtered, currentUser);
+}
+
+// Service Worker Registration (added)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')  // Register the service worker
+      .then((registration) => {
+        console.log('Service Worker registered with scope:', registration.scope);
+      })
+      .catch((error) => {
+        console.error('Service Worker registration failed:', error);
+      });
+  });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
