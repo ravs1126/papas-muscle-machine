@@ -1,7 +1,7 @@
 {
   "name": "DAR PAR BABS",
   "short_name": "D.P.B",
-  "start_url": "/",
+  "start_url": "./?homescreen=1",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#454545",
