@@ -1,12 +1,13 @@
 const CACHE_NAME = 'progress-pwa-v3'; // Update the cache version here to ensure a fresh start
 const APP_SHELL = [
-  './',
-  './index.html',
-  './app.js',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  '/',
+  '/index.html',
+  '/app.js',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
+
 
 self.addEventListener('install', evt =>
   evt.waitUntil(
