@@ -1,11 +1,11 @@
 const CACHE_NAME = 'progress-pwa-v4'; // Update the cache version here to ensure a fresh start
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/app.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/papas-muscle-machine/',
+  '/papas-muscle-machine/index.html',
+  '/papas-muscle-machine/app.js',
+  '/papas-muscle-machine/manifest.json',
+  '/papas-muscle-machine/icons/icon-192.png',
+  '/papas-muscle-machine/icons/icon-512.png'
 ];
 
 
