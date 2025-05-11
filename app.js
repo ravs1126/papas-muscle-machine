@@ -201,7 +201,7 @@ async function updateView() {
 // Service Worker Registration (added)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker.register('/service-worker.js')  // Register the service worker
       .then((registration) => {
         console.log('Service Worker registered with scope:', registration.scope);
       })
@@ -210,7 +210,6 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
-
 
 window.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('#login-screen button[data-user]')
