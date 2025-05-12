@@ -96,26 +96,28 @@ function createDropdown(options, selectedValue, rowNum, col) {
   sel.dataset.row = rowNum;
   sel.dataset.col = col;
 
-  // ── 1) blank placeholder ──
+  // 1) blank placeholder
   const placeholder = document.createElement('option');
   placeholder.value = '';
-  placeholder.textContent = '';            // or use '— Select —'
-  // If there's no existing value (or it's blank), show the placeholder
-  if (selectedValue === '' || selectedValue == null) {
-    placeholder.selected = true;
-  }
+  placeholder.textContent = '';       // or '--' or 'Select…' if you want a hint
+  placeholder.selected = true;        // *** always select it ***
   sel.appendChild(placeholder);
 
-  // ── 2) real options ──
+  // 2) real options
   options.forEach(opt => {
     const o = document.createElement('option');
     o.value = opt.value;
     o.textContent = opt.label;
+    // you can still visually mark the sheet’s existing value if you want,
+    // but it won’t override our placeholder being selected
     if (opt.value == selectedValue) {
-      o.selected = true;
+      o.dataset.sheetValue = true;   // just for debugging, not required
     }
     sel.appendChild(o);
   });
+
+  // 3) ensure our placeholder stays selected on load
+  sel.value = '';  
 
   return sel;
 }
