@@ -100,7 +100,7 @@ function createDropdown(options, selectedValue, rowNum, col) {
   const placeholder = document.createElement('option');
   placeholder.value = '';
   placeholder.textContent = '';       // or '--' or 'Select…' if you want a hint
-  placeholder.selected = true;        // *** always select it ***
+  placeholder.selected = true;        // always select placeholder
   sel.appendChild(placeholder);
 
   // 2) real options
@@ -108,20 +108,14 @@ function createDropdown(options, selectedValue, rowNum, col) {
     const o = document.createElement('option');
     o.value = opt.value;
     o.textContent = opt.label;
-    // you can still visually mark the sheet’s existing value if you want,
-    // but it won’t override our placeholder being selected
-    if (opt.value == selectedValue) {
-      o.dataset.sheetValue = true;   // just for debugging, not required
-    }
     sel.appendChild(o);
   });
 
-  // 3) ensure our placeholder stays selected on load
-  sel.value = '';  
+  // 3) ensure the placeholder stays selected on load
+  sel.value = '';
 
   return sel;
 }
-
 
 function renderExercises(entries, sheetName) {
   const container = document.getElementById('exercise-list');
@@ -215,20 +209,34 @@ async function updateView() {
   renderExercises(filtered, currentUser);
 }
 
-// Service Worker Registration (added)
+// ─── RESET APP FUNCTION ───
+async function resetApp() {
+  // Unregister all service workers
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.unregister()));
+  }
+  // Clear all caches
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  }
+  // Reload fresh
+  location.reload(true);
+}
+
+// Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-   navigator.serviceWorker.register('/papas-muscle-machine/service-worker.js')
-      .then((registration) => {
-        console.log('Service Worker registered with scope:', registration.scope);
-      })
-      .catch((error) => {
-        console.error('Service Worker registration failed:', error);
-      });
+    navigator.serviceWorker.register('/papas-muscle-machine/service-worker.js')
+      .then(registration => console.log('Service Worker registered with scope:', registration.scope))
+      .catch(error => console.error('Service Worker registration failed:', error));
   });
 }
 
+// DOMContentLoaded Handlers
 window.addEventListener('DOMContentLoaded', () => {
+  // User login buttons
   document.querySelectorAll('#login-screen button[data-user]')
     .forEach(btn => btn.addEventListener('click', async () => {
       currentUser = btn.dataset.user;
@@ -247,4 +255,8 @@ window.addEventListener('DOMContentLoaded', () => {
           '<p class="text-center text-red-500">Failed to load sheet.</p>';
       }
     }));
+
+  // Reset App button listener
+  const resetBtn = document.getElementById('reset-app-btn');
+  if (resetBtn) resetBtn.addEventListener('click', resetApp);
 });
