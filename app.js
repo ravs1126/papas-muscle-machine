@@ -92,19 +92,34 @@ function attachInputs(sheetName) {
 
 function createDropdown(options, selectedValue, rowNum, col) {
   const sel = document.createElement('select');
-  // apply boxed styling like the number inputs
   sel.className = 'w-20 bg-[#454545] text-white rounded px-2 py-1';
+  sel.dataset.row = rowNum;
+  sel.dataset.col = col;
+
+  // ── 1) blank placeholder ──
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '';            // or use '— Select —'
+  // If there's no existing value (or it's blank), show the placeholder
+  if (selectedValue === '' || selectedValue == null) {
+    placeholder.selected = true;
+  }
+  sel.appendChild(placeholder);
+
+  // ── 2) real options ──
   options.forEach(opt => {
     const o = document.createElement('option');
     o.value = opt.value;
     o.textContent = opt.label;
-    if (opt.value == selectedValue) o.selected = true;
+    if (opt.value == selectedValue) {
+      o.selected = true;
+    }
     sel.appendChild(o);
   });
-  sel.dataset.row = rowNum;
-  sel.dataset.col = col;
+
   return sel;
 }
+
 
 function renderExercises(entries, sheetName) {
   const container = document.getElementById('exercise-list');
