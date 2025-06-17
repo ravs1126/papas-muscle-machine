@@ -109,6 +109,7 @@ function createDropdown(options, selectedValue, rowNum, col) {
 
 // Main render function: builds a card per exercise row
 function renderExercises(entries, sheetName) {
+  console.log('renderExercises called with', entries.length);
   const container = document.getElementById('exercise-list');
   container.innerHTML = '';
   if (!entries.length) {
