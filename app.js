@@ -1,7 +1,7 @@
 // ─── CONFIG ───
 const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxI6ZSAearvsukTH2Jo-oiJv1SR2htEn2EqrqoY8t3mm0tFdlNLS1cQOy7a4vEORkQSPw/exec';
 const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
-const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I'; // replace with your Google Sheets API key
+const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I'; // your Google Sheets API key
 
 const pumpOptions   = [];
 const healedOptions = [];
@@ -109,7 +109,6 @@ function createDropdown(options, selectedValue, rowNum, col) {
 
 // Main render function: builds a card per exercise row
 function renderExercises(entries, sheetName) {
-  console.log('renderExercises called with', entries.length);
   const container = document.getElementById('exercise-list');
   container.innerHTML = '';
   if (!entries.length) {
@@ -125,7 +124,7 @@ function renderExercises(entries, sheetName) {
   entries.forEach(e => {
     const rowNum = e.index;
     const v = e.values;
-    if (v.length < 23) return;
+    
 
     const [week, day, name, prevWeight, targetWeightRaw, actualWeight,
       prev1, target1, actual1, prev2, target2, actual2,
@@ -193,9 +192,13 @@ function renderExercises(entries, sheetName) {
 
     // 6) RPE & Override
     const rpeInp = clone.querySelector('.rpe-input');
-    rpeInp.value = rpe; rpeInp.dataset.row = rowNum; rpeInp.dataset.col = 'V';
+    rpeInp.value = rpe;
+    rpeInp.dataset.row = rowNum;
+    rpeInp.dataset.col = 'V';
     const overInp = clone.querySelector('.override-input');
-    overInp.value = override; overInp.dataset.row = rowNum; overInp.dataset.col = 'X';
+    overInp.value = override;
+    overInp.dataset.row = rowNum;
+    overInp.dataset.col = 'X';
 
     container.appendChild(clone);
   });
@@ -249,7 +252,7 @@ window.addEventListener('DOMContentLoaded', () => {
         updateView();
       } catch (err) {
         console.error(err);
-        document.getElementById('exercise-list').innerHTML = '<p class=\"text-center text-red-500\">Failed to load sheet.</p>';
+        document.getElementById('exercise-list').innerHTML = '<p class="text-center text-red-500">Failed to load sheet.</p>';
       }
     }));
   document.getElementById('reset-app-btn').addEventListener('click', resetApp);
