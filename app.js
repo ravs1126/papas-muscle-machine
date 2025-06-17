@@ -121,7 +121,7 @@ function renderExercises(entries, sheetName) {
   entries.forEach(e => {
     const rowNum = e.index;
     const v      = e.values;
-    if (v.length < 21) return;  // ensure all expected columns exist
+    if (v.length < 23) return;  // ensure all expected columns exist
 
     // Destructure columns A–W (23 entries)
     const [
