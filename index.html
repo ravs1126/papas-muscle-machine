@@ -173,7 +173,14 @@
           </div>
           <div>
             <div class="font-medium text-sm">RPE</div>
-            <input type="number" class="rpe-input w-full bg-gray-100 rounded px-2 py-1" data-row="" data-col="V" placeholder="RPE" />
+            <select class="rpe-input w-full bg-gray-100 rounded px-2 py-1" data-row="" data-col="V">
+              <option value="">RPE</option>
+              <!-- RPE options 1–10 -->
+              <option>1</option><option>2</option><option>3</option>
+              <option>4</option><option>5</option><option>6</option>
+              <option>7</option><option>8</option><option>9</option>
+              <option>10</option>
+            </select>
           </div>
           <div class="flex flex-col justify-end">
             <div class="font-medium text-sm mb-1">Override</div>
@@ -190,6 +197,6 @@
   </div>
 
   <!-- Load the latest app.js with cache busting -->
-  <script defer src="app.js?v=7"></script>
+  <script defer src="app.js?v=8"></script>
 </body>
 </html>
