@@ -1,7 +1,7 @@
 // ─── CONFIG ───
 const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxI6ZSAearvsukTH2Jo-oiJv1SR2htEn2EqrqoY8t3mm0tFdlNLS1cQOy7a4vEORkQSPw/exec';
 const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
-const API_KEY   = 'AIzaSyA23e0btCLiuyAddQL0doOREr3tdzPC0I';
+const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I';
 
 const pumpOptions   = [ /* ... */ ];
 const healedOptions = [ /* ... */ ];
