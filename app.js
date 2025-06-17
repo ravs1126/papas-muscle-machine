@@ -1,7 +1,7 @@
 // ─── CONFIG ───
 const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxI6ZSAearvsukTH2Jo-oiJv1SR2htEn2EqrqoY8t3mm0tFdlNLS1cQOy7a4vEORkQSPw/exec';
 const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
-const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I';
+const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I'; // TODO: replace with your actual Google Sheets API key
 
 const pumpOptions   = [ /* ... */ ];
 const healedOptions = [ /* ... */ ];
@@ -20,15 +20,19 @@ function urlFor(tab) {
   return url;
 }
 
-// Fetch entire sheet data for the current user\ nasync function fetchSheet(tab) {
+// Fetch entire sheet data for the current user
+async function fetchSheet(tab) {
   const res = await fetch(urlFor(tab));
-  if (!res.ok) throw new Error(`Fetch error: ${res.status}`);
+  if (!res.ok) {
+    console.error('Fetch error detail:', await res.text());
+    throw new Error(`Fetch error: ${res.status}`);
+  }
   const json = await res.json();
   return json.values || [];
 }
 
 // Populate Week & Day selectors
-async function initSelectors(sheetData) {
+function initSelectors(sheetData) {
   const wSel = document.getElementById('week-select');
   const dSel = document.getElementById('day-select');
   wSel.innerHTML = '';
@@ -39,7 +43,8 @@ async function initSelectors(sheetData) {
     if (row[0] && !isNaN(row[0])) weekSet.add(row[0]);
   });
 
-  [...weekSet].sort((a,b) => a - b)
+  [...weekSet]
+    .sort((a, b) => a - b)
     .forEach(w => wSel.append(new Option(`Week ${w}`, w)));
 
   ['1','2','3','4','5','6','7'].forEach(d =>
@@ -90,7 +95,6 @@ function createDropdown(options, selectedValue, rowNum, col) {
   const placeholder = document.createElement('option');
   placeholder.value = '';
   placeholder.textContent = '';
-  placeholder.selected = true;
   sel.appendChild(placeholder);
 
   options.forEach(opt => {
@@ -106,7 +110,6 @@ function createDropdown(options, selectedValue, rowNum, col) {
 
 // Main render function: builds a card per exercise row
 function renderExercises(entries, sheetName) {
-  console.log('renderExercises called with', entries.length, 'entries');
   const container = document.getElementById('exercise-list');
   container.innerHTML = '';
   if (!entries.length) {
@@ -132,7 +135,6 @@ function renderExercises(entries, sheetName) {
     let targetWeight = Number(targetWeightRaw) || 0;
     if (weekOverrideVal === 'Deload') targetWeight = Math.round(targetWeight * 0.9);
 
-    // Determine number of sets based on previous week
     let numSets = 4;
     const currentWeek = parseInt(document.getElementById('week-select').value, 10);
     const currentDay = document.getElementById('day-select').value;
@@ -148,7 +150,7 @@ function renderExercises(entries, sheetName) {
     const prevArr = [prev1, prev2, prev3, prev4];
     const targetArr = [target1, target2, target3, target4];
     const actualArr = [actual1, actual2, actual3, actual4];
-    const colMap = ['I', 'L', 'O', 'R'];
+    const colMap = ['I','L','O','R'];
 
     const clone = document.importNode(tpl, true);
 
@@ -162,8 +164,91 @@ function renderExercises(entries, sheetName) {
     clone.querySelector('.prev-weight-display').innerText = prevWeight;
     clone.querySelector('.target-weight-display').innerText = targetWeight;
 
-    // 3) Actual weight input
+    // 3) Actual weight
     const wtInp = clone.querySelector('.weight-actual-input');
     wtInp.value = actualWeight;
     wtInp.dataset.row = rowNum;
-    wtInp.datase
+    wtInp.dataset.col = 'F';
+
+    // 4) Sets
+    const setDivs = clone.querySelectorAll('.sets-container > div');
+    setDivs.forEach((wrap, i) => {
+      if (i >= numSets) return wrap.remove();
+      wrap.querySelector('.prev-set-display').innerText = prevArr[i];
+      wrap.querySelector('.target-set-display').innerText = targetArr[i];
+      const inp = wrap.querySelector(`.reps${i+1}-input`);
+      inp.value = actualArr[i] || '';
+      inp.dataset.row = rowNum;
+      inp.dataset.col = colMap[i];
+    });
+
+    // 5) Dropdowns
+    ['pump','healed','pain'].forEach((field, idx) => {
+      const sel = createDropdown(
+        field === 'pump' ? pumpOptions : field === 'healed' ? healedOptions : painOptions,
+        v[18+idx], rowNum, String.fromCharCode(73+idx)
+      );
+      clone.querySelector(`.${field}-input`).replaceWith(sel);
+    });
+
+    // 6) RPE & Override
+    const rpeInp = clone.querySelector('.rpe-input'); rpeInp.value = rpe; rpeInp.dataset.row = rowNum; rpeInp.dataset.col = 'V';
+    const overInp = clone.querySelector('.override-input'); overInp.value = override; overInp.dataset.row = rowNum; overInp.dataset.col = 'X';
+
+    container.appendChild(clone);
+  });
+
+  attachInputs(sheetName);
+}
+
+// Update view when selectors change
+function updateView() {
+  if (!currentUser) return;
+  const week = document.getElementById('week-select').value;
+  const day = document.getElementById('day-select').value;
+  renderExercises(extractDay(week, day), currentUser);
+}
+
+// Reset app: clear caches and reload
+async function resetApp() {
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.unregister()));
+  }
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  }
+  location.reload(true);
+}
+
+// Register service worker for offline caching
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/papas-muscle-machine/service-worker.js')
+      .catch(console.error);
+  });
+}
+
+// Wire up UI on DOMContentLoaded
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('#login-screen button[data-user]')
+    .forEach(btn => btn.addEventListener('click', async () => {
+      currentUser = btn.dataset.user;
+      try {
+        const full = await fetchSheet(currentUser);
+        sheetCache = full.slice(1); // drop header row
+        initSelectors(sheetCache);
+        document.getElementById('login-screen').style.display = 'none';
+       	document.getElementById('main-content').style.display = 'block';
+        document.getElementById('week-select').addEventListener('change', updateView);
+        document.getElementById('day-select').addEventListener('change', updateView);
+        document.getElementById('week-override').addEventListener('change', updateView);
+        updateView();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('exercise-list').innerHTML = '<p class="text-center text-red-500">Failed to load sheet.</p>';
+      }
+    }));
+  document.getElementById('reset-app-btn').addEventListener('click', resetApp);
+});
