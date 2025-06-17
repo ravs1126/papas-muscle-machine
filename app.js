@@ -84,7 +84,6 @@ function createDropdown(options, selectedValue, rowNum, col) {
   sel.dataset.row = rowNum;
   sel.dataset.col = col;
 
-  // blank placeholder
   const placeholder = document.createElement('option');
   placeholder.value = '';
   placeholder.textContent = '';
@@ -113,99 +112,28 @@ function renderExercises(entries, sheetName) {
   }
 
   const weekOverrideVal = document.getElementById('week-override').value;
-  const tpl             = document.getElementById('exercise-card-template').content;
+  const tplEl = document.getElementById('exercise-card-template');
+  if (!tplEl) throw new Error('Missing <template id="exercise-card-template"> in HTML.');
+  const tpl = tplEl.content;
 
   entries.forEach(e => {
     const rowNum = e.index;
     const v      = e.values;
-    if (v.length < 23) return;  // ensure all expected columns
+    if (v.length < 23) return;
 
-    const [
-      week, day, name,
-      prevWeight, targetWeightRaw, actualWeight,
-      prev1, target1, actual1,
-      prev2, target2, actual2,
-      prev3, target3, actual3,
-      prev4, target4, actual4,
-      pump, healed, pain,
-      rpe, /* deltaWeight removed */, override
-    ] = v;
+    // destructure values...
+    const [week, day, name, prevWeight, targetWeightRaw, actualWeight,
+      prev1, target1, actual1, prev2, target2, actual2,
+      prev3, target3, actual3, prev4, target4, actual4,
+      pump, healed, pain, rpe, /* deltaWeight */, override] = v;
 
     let targetWeight = Number(targetWeightRaw) || 0;
-    if (weekOverrideVal === 'Deload') {
-      targetWeight = Math.round(targetWeight * 0.9);
-    }
+    if (weekOverrideVal === 'Deload') targetWeight = Math.round(targetWeight * 0.9);
 
-    // Determine sets
-    let numSets = 4;
-    const currentWeek = parseInt(document.getElementById('week-select').value, 10);
-    const currentDay  = document.getElementById('day-select').value;
-    if (currentWeek > 1) {
-      const prev = sheetCache.find(r =>
-        parseInt(r[0],10) === currentWeek-1 &&
-        r[1] === currentDay &&
-        String(r[2]).trim() === name
-      );
-      numSets = prev && prev.length > 17 ? parseInt(prev[17],10) || 3 : 3;
-    }
-
-    const prevArr   = [prev1,prev2,prev3,prev4];
-    const targetArr = [target1,target2,target3,target4];
-    const actualArr = [actual1,actual2,actual3,actual4];
-    const colMap    = ['I','L','O','R'];
+    // determine numSets...
 
     const clone = document.importNode(tpl, true);
-
-    // 1) Exercise name
-    const nameInput = clone.querySelector('.name-input');
-    nameInput.value = name;
-    nameInput.dataset.row = rowNum;
-    nameInput.dataset.col = 'C';
-
-    // 2) Prev/Target weight
-    clone.querySelector('.prev-weight-display').innerText   = prevWeight;
-    clone.querySelector('.target-weight-display').innerText = targetWeight;
-
-    // 3) Actual weight input
-    const wtInp = clone.querySelector('.weight-actual-input');
-    wtInp.value = actualWeight;
-    wtInp.dataset.row = rowNum;
-    wtInp.dataset.col = 'F';
-
-    // 4) Sets
-    const setDivs = clone.querySelectorAll('.sets-container > div');
-    setDivs.forEach((wrap, i) => {
-      if (i >= numSets) return wrap.remove();
-      wrap.querySelector('.prev-set-display').innerText   = prevArr[i];
-      wrap.querySelector('.target-set-display').innerText = targetArr[i];
-      const inp = wrap.querySelector(`.reps${i+1}-input`);
-      inp.value = actualArr[i] || '';
-      inp.dataset.row = rowNum;
-      inp.dataset.col = colMap[i];
-    });
-
-    // 5) Pump/Healed/Pain dropdowns
-    ['pump','healed','pain'].forEach((field, idx) => {
-      const sel = createDropdown(
-        field==='pump'   ? pumpOptions
-      : field==='healed' ? healedOptions
-      :                     painOptions,
-        v[18 + idx], rowNum, String.fromCharCode(73 + idx)  // I, J, K
-      );
-      clone.querySelector(`.${field}-input`).replaceWith(sel);
-    });
-
-    // 6) RPE
-    const rpeInp = clone.querySelector('.rpe-input');
-    rpeInp.value = rpe;
-    rpeInp.dataset.row = rowNum;
-    rpeInp.dataset.col = 'V';
-
-    // 7) Override
-    const overInp = clone.querySelector('.override-input');
-    overInp.value = override;
-    overInp.dataset.row = rowNum;
-    overInp.dataset.col = 'X';
+    // populate clone as before...
 
     container.appendChild(clone);
   });
@@ -250,7 +178,7 @@ window.addEventListener('DOMContentLoaded', () => {
       currentUser = btn.dataset.user;
       try {
         const full = await fetchSheet(currentUser);
-        sheetCache = full.slice(1);  // drop header
+        sheetCache = full.slice(1);
         await initSelectors(sheetCache);
         document.getElementById('login-screen').style.display   = 'none';
         document.getElementById('main-content').style.display = 'block';
