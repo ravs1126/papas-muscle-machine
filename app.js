@@ -161,6 +161,8 @@ function renderExercises(entries, sheetName) {
     const colMapActual = ['I','L','O','R'];
 
     const clone = document.importNode(tpl, true);
+	console.log('🔍 clone contains:', clone.querySelectorAll('*[class]'));
+
 
     // 1) Exercise name
     const nameInput = clone.querySelector('.name-input');
