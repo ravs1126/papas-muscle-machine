@@ -124,19 +124,20 @@ function renderExercises(entries, sheetName) {
   entries.forEach(e => {
     const rowNum = e.index;
     const v = e.values;
-    
-
-    const [week, day, name, prevWeight, targetWeightRaw, actualWeight,
+    const [
+      week, day, name, prevWeight, targetWeightRaw, actualWeight,
       prev1, target1, actual1, prev2, target2, actual2,
       prev3, target3, actual3, prev4, target4, actual4,
-      pump, healed, pain, rpe, /* deltaWeight */, override] = v;
+      pump, healed, pain, rpe, /* deltaWeight */, override
+    ] = v;
 
+    // calculate targetWeight & numSets
     let targetWeight = Number(targetWeightRaw) || 0;
     if (weekOverrideVal === 'Deload') targetWeight = Math.round(targetWeight * 0.9);
 
     let numSets = 4;
     const currentWeek = parseInt(document.getElementById('week-select').value, 10);
-    const currentDay = document.getElementById('day-select').value;
+    const currentDay  = document.getElementById('day-select').value;
     if (currentWeek > 1) {
       const prev = sheetCache.find(r =>
         parseInt(r[0], 10) === currentWeek - 1 &&
@@ -146,11 +147,12 @@ function renderExercises(entries, sheetName) {
       numSets = prev && prev.length > 17 ? parseInt(prev[17], 10) || 3 : 3;
     }
 
-    const prevArr = [prev1, prev2, prev3, prev4];
+    const prevArr   = [prev1, prev2, prev3, prev4];
     const targetArr = [target1, target2, target3, target4];
     const actualArr = [actual1, actual2, actual3, actual4];
-    const colMap = ['I','L','O','R'];
+    const colMap    = ['I', 'L', 'O', 'R'];
 
+    // clone template
     const clone = document.importNode(tpl, true);
 
     // 1) Exercise name
@@ -160,7 +162,7 @@ function renderExercises(entries, sheetName) {
     nameInput.dataset.col = 'C';
 
     // 2) Prev/Target weight
-    clone.querySelector('.prev-weight-display').innerText = prevWeight;
+    clone.querySelector('.prev-weight-display').innerText   = prevWeight;
     clone.querySelector('.target-weight-display').innerText = targetWeight;
 
     // 3) Actual weight
@@ -169,32 +171,46 @@ function renderExercises(entries, sheetName) {
     wtInp.dataset.row = rowNum;
     wtInp.dataset.col = 'F';
 
-    // 4) Sets
-    const setDivs = clone.querySelectorAll('.sets-container > div');
-    setDivs.forEach((wrap, i) => {
-      if (i >= numSets) return wrap.remove();
-      wrap.querySelector('.prev-set-display').innerText = prevArr[i];
-      wrap.querySelector('.target-set-display').innerText = targetArr[i];
-      const inp = wrap.querySelector(`.reps${i+1}-input`);
-      inp.value = actualArr[i] || '';
+    // 4) Prev/Target sets display
+    const displayRows = clone.querySelectorAll('.sets-container > div');
+    displayRows.forEach((wrap, i) => {
+      if (i >= numSets) {
+        wrap.remove();
+      } else {
+        wrap.querySelector('.prev-set-display').innerText   = prevArr[i];
+        wrap.querySelector('.target-set-display').innerText = targetArr[i];
+      }
+    });
+
+    // 5) Actual reps inputs
+    actualArr.forEach((val, i) => {
+      const inp = clone.querySelector(`.reps${i+1}-input`);
+      if (!inp) {
+        console.warn(`Missing .reps${i+1}-input in template`);
+        return;
+      }
+      inp.value = val || '';
       inp.dataset.row = rowNum;
       inp.dataset.col = colMap[i];
     });
 
-    // 5) Dropdowns
+    // 6) Pump/Healed/Pain dropdowns
     ['pump','healed','pain'].forEach((field, idx) => {
       const sel = createDropdown(
-        field === 'pump' ? pumpOptions : field === 'healed' ? healedOptions : painOptions,
-        v[18+idx], rowNum, String.fromCharCode(73+idx)
+        field === 'pump'   ? pumpOptions
+      : field === 'healed' ? healedOptions
+      :                       painOptions,
+        v[18 + idx], rowNum, String.fromCharCode(73 + idx)
       );
       clone.querySelector(`.${field}-input`).replaceWith(sel);
     });
 
-    // 6) RPE & Override
+    // 7) RPE & Override
     const rpeInp = clone.querySelector('.rpe-input');
     rpeInp.value = rpe;
     rpeInp.dataset.row = rowNum;
     rpeInp.dataset.col = 'V';
+
     const overInp = clone.querySelector('.override-input');
     overInp.value = override;
     overInp.dataset.row = rowNum;
@@ -210,7 +226,7 @@ function renderExercises(entries, sheetName) {
 function updateView() {
   if (!currentUser) return;
   const week = document.getElementById('week-select').value;
-  const day = document.getElementById('day-select').value;
+  const day  = document.getElementById('day-select').value;
   renderExercises(extractDay(week, day), currentUser);
 }
 
@@ -241,19 +257,21 @@ window.addEventListener('DOMContentLoaded', () => {
     .forEach(btn => btn.addEventListener('click', async () => {
       currentUser = btn.dataset.user;
       try {
-        const full = await fetchSheet(currentUser);
-        sheetCache = full.slice(1); // drop header row
+        const full      = await fetchSheet(currentUser);
+        sheetCache      = full.slice(1); // drop header row
         initSelectors(sheetCache);
-        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('login-screen').style.display   = 'none';
         document.getElementById('main-content').style.display = 'block';
-        document.getElementById('week-select').addEventListener('change', updateView);
-        document.getElementById('day-select').addEventListener('change', updateView);
+        document.getElementById('week-select')   .addEventListener('change', updateView);
+        document.getElementById('day-select')    .addEventListener('change', updateView);
         document.getElementById('week-override').addEventListener('change', updateView);
         updateView();
       } catch (err) {
         console.error(err);
-        document.getElementById('exercise-list').innerHTML = '<p class="text-center text-red-500">Failed to load sheet.</p>';
+        document.getElementById('exercise-list').innerHTML =
+          '<p class="text-center text-red-500">Failed to load sheet.</p>';
       }
     }));
+
   document.getElementById('reset-app-btn').addEventListener('click', resetApp);
 });
