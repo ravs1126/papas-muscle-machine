@@ -4,13 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Workout PWA</title>
-
-  <!-- Tailwind for styling -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="manifest" href="/papas-muscle-machine/manifest.json" />
   <meta name="theme-color" content="#454545" />
 </head>
-
 <body class="bg-gray-100 p-4">
 
   <!-- Login Screen -->
@@ -28,7 +25,7 @@
     <div class="flex items-center justify-between mb-4">
       <div class="flex space-x-4">
         <select id="week-select" class="p-2 border rounded"></select>
-        <select id="day-select" class="p-2 border rounded"></select>
+        <select id="day-select"  class="p-2 border rounded"></select>
       </div>
       <div>
         <label for="week-override" class="text-sm font-medium text-gray-700 mr-2">Week Override</label>
@@ -44,100 +41,137 @@
 
   <!-- Exercise Card Template -->
   <template id="exercise-card-template">
-    <div class="bg-white p-4 rounded shadow">
+    <div class="bg-white p-4 rounded shadow space-y-4">
 
-      <!-- Exercise Name -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700">Exercise</label>
-        <input type="text" class="name-input w-full border p-2 rounded text-lg font-semibold" data-row="" data-col="C" value="" />
+      <!-- 1. Exercise Name -->
+      <div>
+        <input type="text"
+               class="name-input w-full border-b-2 border-gray-300 pb-1 text-lg font-semibold"
+               data-row="" data-col="C"
+               placeholder="Exercise name" />
       </div>
 
-      <!-- Weight with Prev/Target display -->
-      <div class="flex items-center mb-4 space-x-4">
-        <div class="flex flex-col">
-          <label class="text-xs text-[#808000]">Weight</label>
-          <div class="flex space-x-2 items-center">
-            <span class="text-sm text-gray-500 prev-weight-display"></span>
-            <span class="text-sm text-gray-500">/</span>
-            <span class="text-sm text-gray-500 target-weight-display"></span>
-            <input type="number" class="w-20 bg-[#454545] text-white rounded px-2 py-1 weight-actual-input" data-row="" data-col="F" placeholder="Actual" value="" />
-          </div>
+      <!-- 2. Last Week vs Goal Weight -->
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <div class="font-medium">Last Week</div>
+          <div class="prev-weight-display">—</div>
+        </div>
+        <div>
+          <div class="font-medium">Goal</div>
+          <div class="target-weight-display">—</div>
         </div>
       </div>
 
-      <!-- Sets 1-4 -->
-      <div class="grid grid-cols-4 gap-4 mb-4 text-sm sets-container">
-        <!-- Set 1 -->
+      <!-- 3. Last Week vs Goal Reps per Set -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        <!-- repeat for sets 1–4 -->
         <div>
-          <label class="text-xs text-[#808000]">Set 1</label>
-          <div class="flex space-x-2 items-center">
-            <span class="text-sm text-gray-500 prev-set-display"></span>
-            <span>/</span>
-            <span class="text-sm text-gray-500 target-set-display"></span>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps1-input" data-row="" data-col="I" placeholder="Actual" value="" />
+          <div class="font-medium">Set 1</div>
+          <div class="flex justify-between">
+            <span class="prev-set-display">—</span>
+            <span class="target-set-display">—</span>
           </div>
         </div>
-        <!-- Set 2 -->
         <div>
-          <label class="text-xs text-[#808000]">Set 2</label>
-          <div class="flex space-x-2 items-center">
-            <span class="text-sm text-gray-500 prev-set-display"></span>
-            <span>/</span>
-            <span class="text-sm text-gray-500 target-set-display"></span>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps2-input" data-row="" data-col="L" placeholder="Actual" value="" />
+          <div class="font-medium">Set 2</div>
+          <div class="flex justify-between">
+            <span class="prev-set-display">—</span>
+            <span class="target-set-display">—</span>
           </div>
         </div>
-        <!-- Set 3 -->
         <div>
-          <label class="text-xs text-[#808000]">Set 3</label>
-          <div class="flex space-x-2 items-center">
-            <span class="text-sm text-gray-500 prev-set-display"></span>
-            <span>/</span>
-            <span class="text-sm text-gray-500 target-set-display"></span>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps3-input" data-row="" data-col="O" placeholder="Actual" value="" />
+          <div class="font-medium">Set 3</div>
+          <div class="flex justify-between">
+            <span class="prev-set-display">—</span>
+            <span class="target-set-display">—</span>
           </div>
         </div>
-        <!-- Set 4 -->
         <div>
-          <label class="text-xs text-[#808000]">Set 4</label>
-          <div class="flex space-x-2 items-center">
-            <span class="text-sm text-gray-500 prev-set-display"></span>
-            <span>/</span>
-            <span class="text-sm text-gray-500 target-set-display"></span>
-            <input type="number" class="w-full bg-[#454545] text-white rounded px-2 py-1 reps4-input" data-row="" data-col="R" placeholder="Actual" value="" />
+          <div class="font-medium">Set 4</div>
+          <div class="flex justify-between">
+            <span class="prev-set-display">—</span>
+            <span class="target-set-display">—</span>
           </div>
         </div>
       </div>
 
-      <!-- Pump/Healed/Pain -->
-      <div class="grid grid-cols-3 gap-4 text-sm">
+      <!-- 4. Today's Actual Inputs -->
+      <div class="space-y-2">
         <div>
-          <label class="text-xs text-[#808000]">Pump</label>
-          <select class="pump-input w-20 bg-[#454545] text-white rounded px-2 py-1" data-row="" data-col="I"></select>
+          <div class="font-medium text-sm">Actual Weight</div>
+          <input type="number"
+                 class="weight-actual-input w-full bg-gray-100 rounded px-2 py-1"
+                 data-row="" data-col="F"
+                 placeholder="lbs" />
         </div>
-        <div>
-          <label class="text-xs text-[#808000]">Healed</label>
-          <select class="healed-input w-20 bg-[#454545] text-white rounded px-2 py-1" data-row="" data-col="J"></select>
-        </div>
-        <div>
-          <label class="text-xs text-[#808000]">Pain</label>
-          <select class="pain-input w-20 bg-[#454545] text-white rounded px-2 py-1" data-row="" data-col="K"></select>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div>
+            <div class="font-medium text-sm">Set 1</div>
+            <input type="number"
+                   class="reps1-input w-full bg-gray-100 rounded px-2 py-1"
+                   data-row="" data-col="I"
+                   placeholder="reps" />
+          </div>
+          <div>
+            <div class="font-medium text-sm">Set 2</div>
+            <input type="number"
+                   class="reps2-input w-full bg-gray-100 rounded px-2 py-1"
+                   data-row="" data-col="L"
+                   placeholder="reps" />
+          </div>
+          <div>
+            <div class="font-medium text-sm">Set 3</div>
+            <input type="number"
+                   class="reps3-input w-full bg-gray-100 rounded px-2 py-1"
+                   data-row="" data-col="O"
+                   placeholder="reps" />
+          </div>
+          <div>
+            <div class="font-medium text-sm">Set 4</div>
+            <input type="number"
+                   class="reps4-input w-full bg-gray-100 rounded px-2 py-1"
+                   data-row="" data-col="R"
+                   placeholder="reps" />
+          </div>
         </div>
       </div>
 
-      <!-- RPE & Weight Increment & Override -->
-      <div class="flex space-x-4">
+      <!-- 5. Metrics Row + Override -->
+      <div class="grid grid-cols-3 sm:grid-cols-6 gap-4 items-start">
         <div>
-          <label class="text-xs text-[#808000]">RPE</label>
-          <input type="number" class="rpe-input w-20 bg-[#454545] text-white rounded px-2 py-1" data-row="" data-col="V" placeholder="RPE" />
+          <div class="font-medium text-sm">Pump</div>
+          <select class="pump-input w-full bg-gray-100 rounded px-2 py-1"
+                  data-row="" data-col="I"></select>
         </div>
         <div>
-          <label class="text-xs text-[#808000]">Weight Δ</label>
-          <input type="number" class="delta-weight-input w-20 bg-[#454545] text-white rounded px-2 py-1" data-row="" data-col="W" placeholder="Δ" />
+          <div class="font-medium text-sm">Healed</div>
+          <select class="healed-input w-full bg-gray-100 rounded px-2 py-1"
+                  data-row="" data-col="J"></select>
         </div>
         <div>
-          <label class="text-xs text-[#808000]">Override</label>
-          <select class="override-input w-24 bg-[#454545] text-white rounded px-2 py-1" data-row="" data-col="X">
+          <div class="font-medium text-sm">Pain</div>
+          <select class="pain-input w-full bg-gray-100 rounded px-2 py-1"
+                  data-row="" data-col="K"></select>
+        </div>
+        <div>
+          <div class="font-medium text-sm">RPE</div>
+          <input type="number"
+                 class="rpe-input w-full bg-gray-100 rounded px-2 py-1"
+                 data-row="" data-col="V"
+                 placeholder="RPE" />
+        </div>
+        <div>
+          <div class="font-medium text-sm">Weight Adj.</div>
+          <input type="number"
+                 class="delta-weight-input w-full bg-gray-100 rounded px-2 py-1"
+                 data-row="" data-col="W"
+                 placeholder="Δ lbs" />
+        </div>
+        <div class="flex flex-col justify-end">
+          <div class="font-medium text-sm mb-1">Override</div>
+          <select class="override-input w-full bg-gray-100 rounded px-2 py-1"
+                  data-row="" data-col="X">
             <option value="">None</option>
             <option value="Deload">Deload</option>
             <option value="Force Keep">Force Keep</option>
@@ -148,7 +182,6 @@
     </div>
   </template>
 
-  <!-- Load App Logic -->
   <script src="app.js"></script>
 </body>
 </html>
