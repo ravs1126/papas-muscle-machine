@@ -1,7 +1,7 @@
 // ─── CONFIG ───
 const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxI6ZSAearvsukTH2Jo-oiJv1SR2htEn2EqrqoY8t3mm0tFdlNLS1cQOy7a4vEORkQSPw/exec';
 const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
-const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I';
+const API_KEY   = 'AIzaSyA23e0btCLiuyAddQL0doOREr3tdzPC0I';
 
 // Dropdown options with descriptions
 const pumpOptions = [
@@ -71,7 +71,7 @@ function extractDay(week, day) {
 
 function attachInputs(sheetName) {
   document.querySelectorAll(
-    'select, .name-input, .weight-input, .reps1-input, .reps2-input, .reps3-input, .reps4-input'
+    'select, .name-input, .weight-actual-input, .reps1-input, .reps2-input, .reps3-input, .reps4-input, .rpe-input, .delta-weight-input, .override-input'
   ).forEach(input => {
     input.addEventListener('change', async e => {
       const { row, col } = e.target.dataset;
@@ -96,14 +96,12 @@ function createDropdown(options, selectedValue, rowNum, col) {
   sel.dataset.row = rowNum;
   sel.dataset.col = col;
 
-  // 1) blank placeholder
   const placeholder = document.createElement('option');
   placeholder.value = '';
-  placeholder.textContent = '';       // or '--' or 'Select…' if you want a hint
-  placeholder.selected = true;        // always select placeholder
+  placeholder.textContent = '';
+  placeholder.selected = true;
   sel.appendChild(placeholder);
 
-  // 2) real options
   options.forEach(opt => {
     const o = document.createElement('option');
     o.value = opt.value;
@@ -111,9 +109,7 @@ function createDropdown(options, selectedValue, rowNum, col) {
     sel.appendChild(o);
   });
 
-  // 3) ensure the placeholder stays selected on load
-  sel.value = '';
-
+  sel.value = selectedValue || '';
   return sel;
 }
 
@@ -125,75 +121,104 @@ function renderExercises(entries, sheetName) {
     return;
   }
 
-  const currentWeek = parseInt(
-    document.getElementById('week-select').value, 10
-  );
-  const currentDay = document.getElementById('day-select').value;
+  const currentWeek = parseInt(document.getElementById('week-select').value, 10);
+  const currentDay  = document.getElementById('day-select').value;
   const tpl = document.getElementById('exercise-card-template').content;
 
   entries.forEach(e => {
-    const values = e.values;
     const rowNum = e.index;
-    if (!values || values.length < 11) return;
+    const v = e.values;
+    if (v.length < 23) return;
 
-    const [week, day, name, wt, r1, r2, r3, r4, pump, healed, pain] = values;
+    // Destructure based on new layout
+    const [
+      week, day, name,
+      prevWeight, targetWeight, actualWeight,
+      prev1, target1, actual1,
+      prev2, target2, actual2,
+      prev3, target3, actual3,
+      prev4, target4, actual4,
+      pump, healed, pain,
+      rpe, deltaWeight, override,
+      repLogic, weightLogic
+    ] = v;
 
-    // Determine numSets:
-    let numSets;
-    if (currentWeek === 1) {
-      numSets = 4;
-    } else {
+    // Determine numSets from prev data
+    let numSets = 4;
+    if (currentWeek > 1) {
       const prev = sheetCache.find(r =>
         parseInt(r[0],10) === currentWeek-1 &&
         r[1] === currentDay &&
         String(r[2]).trim() === name
       );
-      numSets = prev && prev.length>16 ? parseInt(prev[16],10)||3 : 3;
+      numSets = prev && prev.length > 17 ? parseInt(prev[17],10) || 3 : 3;
     }
-
-    const repsMap = [r1, r2, r3, r4];
-    const colMap = ['E','F','G','H'];
 
     const clone = document.importNode(tpl, true);
 
-    // Bind editable name field
+    // Bind exercise name
     const nameInput = clone.querySelector('.name-input');
-    if (nameInput) {
-      nameInput.value = name;
-      nameInput.dataset.row = rowNum;
-      nameInput.dataset.col = 'C';
-    }
+    nameInput.value = name;
+    nameInput.dataset.row = rowNum;
+    nameInput.dataset.col = 'C';
 
-    // Bind weight
-    const wtEl = clone.querySelector('.weight-input');
-    if (wtEl) {
-      wtEl.value = wt;
-      wtEl.dataset.row = rowNum;
-      wtEl.dataset.col = 'D';
-    }
+    // Bind prev/target weight display
+    clone.querySelector('.prev-weight-display').innerText   = prevWeight;
+    clone.querySelector('.target-weight-display').innerText = targetWeight;
 
-    // Render reps
-    for (let i = 0; i < 4; i++) {
-      const inp = clone.querySelector(`.reps${i+1}-input`);
-      const wrap = inp?.closest('div');
-      if (i < numSets) {
-        inp.value = repsMap[i];
-        inp.dataset.row = rowNum;
-        inp.dataset.col = colMap[i];
-      } else if (wrap) {
+    // Bind actual weight input
+    const wtInp = clone.querySelector('.weight-actual-input');
+    wtInp.value = actualWeight;
+    wtInp.dataset.row = rowNum;
+    wtInp.dataset.col = 'F';
+
+    // Bind sets
+    const colMapActual = ['I','L','O','R'];
+    const prevArr   = [prev1, prev2, prev3, prev4];
+    const targetArr = [target1, target2, target3, target4];
+
+    const setDivs = clone.querySelectorAll('.sets-container > div');
+    setDivs.forEach((wrap, i) => {
+      if (i >= numSets) {
         wrap.remove();
+        return;
       }
-    }
-
-    // Dropdowns for pump/healed/pain
-    ['pump','healed','pain'].forEach((field, idx) => {
-      const el = clone.querySelector(`.${field}-input`);
-      const sel = createDropdown(
-        field === 'pump' ? pumpOptions : field === 'healed' ? healedOptions : painOptions,
-        values[8+idx], rowNum, String.fromCharCode(73+idx)
-      );
-      if (el) el.replaceWith(sel);
+      wrap.querySelector('.prev-set-display').innerText   = prevArr[i];
+      wrap.querySelector('.target-set-display').innerText = targetArr[i];
+      const inp = wrap.querySelector(`.reps${i+1}-input`);
+      inp.value = actual1; // note: template class name
+      inp.dataset.row = rowNum;
+      inp.dataset.col = colMapActual[i];
     });
+
+    // Pump/Healed/Pain dropdowns
+    ['pump','healed','pain'].forEach((field, idx) => {
+      const sel = createDropdown(
+        field === 'pump' ? pumpOptions
+          : field === 'healed' ? healedOptions
+          : painOptions,
+        v[18+idx], rowNum, String.fromCharCode(73+idx)
+      );
+      clone.querySelector(`.${field}-input`).replaceWith(sel);
+    });
+
+    // RPE
+    const rpeInp = clone.querySelector('.rpe-input');
+    rpeInp.value = rpe;
+    rpeInp.dataset.row = rowNum;
+    rpeInp.dataset.col = 'V';
+
+    // Delta Weight (Weight increment)
+    const deltaInp = clone.querySelector('.delta-weight-input');
+    deltaInp.value = deltaWeight;
+    deltaInp.dataset.row = rowNum;
+    deltaInp.dataset.col = 'W';
+
+    // Override per-exercise
+    const overInp = clone.querySelector('.override-input');
+    overInp.value = override;
+    overInp.dataset.row = rowNum;
+    overInp.dataset.col = 'X';
 
     container.appendChild(clone);
   });
@@ -204,39 +229,31 @@ function renderExercises(entries, sheetName) {
 async function updateView() {
   if (!currentUser) return;
   const week = document.getElementById('week-select').value;
-  const day = document.getElementById('day-select').value;
+  const day  = document.getElementById('day-select').value;
   const filtered = extractDay(week, day);
   renderExercises(filtered, currentUser);
 }
 
-// ─── RESET APP FUNCTION ───
 async function resetApp() {
-  // Unregister all service workers
   if ('serviceWorker' in navigator) {
     const regs = await navigator.serviceWorker.getRegistrations();
     await Promise.all(regs.map(r => r.unregister()));
   }
-  // Clear all caches
   if ('caches' in window) {
     const keys = await caches.keys();
     await Promise.all(keys.map(k => caches.delete(k)));
   }
-  // Reload fresh
   location.reload(true);
 }
 
-// Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/papas-muscle-machine/service-worker.js')
-      .then(registration => console.log('Service Worker registered with scope:', registration.scope))
-      .catch(error => console.error('Service Worker registration failed:', error));
+      .catch(console.error);
   });
 }
 
-// DOMContentLoaded Handlers
 window.addEventListener('DOMContentLoaded', () => {
-  // User login buttons
   document.querySelectorAll('#login-screen button[data-user]')
     .forEach(btn => btn.addEventListener('click', async () => {
       currentUser = btn.dataset.user;
@@ -248,6 +265,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('main-content').style.display = 'block';
         document.getElementById('week-select').onchange = updateView;
         document.getElementById('day-select').onchange = updateView;
+        document.getElementById('week-override').onchange = updateView;
         updateView();
       } catch (err) {
         console.error(err);
@@ -256,7 +274,6 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }));
 
-  // Reset App button listener
   const resetBtn = document.getElementById('reset-app-btn');
   if (resetBtn) resetBtn.addEventListener('click', resetApp);
 });
