@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Workout PWA</title>
+  <!-- Tailwind CDN (for development only; consider using PostCSS for production) -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PWA manifest -->
   <link rel="manifest" href="/papas-muscle-machine/manifest.json" />
   <meta name="theme-color" content="#454545" />
 </head>
@@ -20,11 +22,14 @@
     <button id="reset-app-btn" class="mt-6 px-4 py-2 bg-red-600 text-white rounded">Reset App</button>
   </div>
 
-  <!-- Main Content -->
+  <!-- Main Content (hidden until user is selected) -->
   <div id="main-content" class="hidden">
+    <!-- Controls: Week, Day, and Override -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex space-x-4">
+        <!-- Week Selector -->
         <select id="week-select" class="p-2 border rounded"></select>
+        <!-- Day Selector -->
         <select id="day-select"  class="p-2 border rounded"></select>
       </div>
       <div>
@@ -36,6 +41,8 @@
         </select>
       </div>
     </div>
+
+    <!-- Container for dynamically rendered exercise cards -->
     <div id="exercise-list" class="space-y-4"></div>
 
     <!-- Template for Exercise Card -->
@@ -94,7 +101,7 @@
           </div>
         </div>
 
-        <!-- 4. Actual weight & reps -->
+        <!-- 4. Actual weight & reps inputs -->
         <div class="space-y-2 my-2">
           <div>
             <div class="font-medium text-sm">Actual Weight</div>
@@ -150,7 +157,7 @@
           </div>
         </div>
 
-        <!-- 5. Pump, Healed, Pain, RPE, Override -->
+        <!-- 5. Pump, Healed, Pain, RPE, Override selectors -->
         <div class="grid grid-cols-5 gap-4 items-start my-2">
           <div>
             <div class="font-medium text-sm">Pump</div>
@@ -179,10 +186,9 @@
         </div>
       </div>
     </template>
-
-    <!-- End Main Content -->
   </div>
 
-  <script defer src="app.js?v=4"></script>
+  <!-- Load the latest app.js with cache busting -->
+  <script defer src="app.js?v=5"></script>
 </body>
 </html>
