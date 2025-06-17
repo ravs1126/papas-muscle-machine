@@ -3,9 +3,10 @@ const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxI6ZSAearvsukTH2Jo-o
 const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
 const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I'; // your Google Sheets API key
 
-const pumpOptions   = [];
-const healedOptions = [];
-const painOptions   = [];
+// Populate these with the exact values you record back to Sheets
+const pumpOptions   = Array.from({ length: 6 }, (_, i) => ({ value: String(i), label: String(i) }));
+const healedOptions = Array.from({ length: 6 }, (_, i) => ({ value: String(i), label: String(i) }));
+const painOptions   = Array.from({ length: 11 }, (_, i) => ({ value: String(i), label: String(i) }));
 
 let currentUser = null;
 let sheetCache  = [];
@@ -84,7 +85,7 @@ function attachInputs(sheetName) {
   });
 }
 
-// Create a dropdown <select> for pump/healed/pain fields
+// Create a dropdown <select> for pump/healed/pain/RPE fields
 function createDropdown(options, selectedValue, rowNum, col) {
   const sel = document.createElement('select');
   sel.className = 'w-20 bg-[#454545] text-white rounded px-2 py-1';
@@ -185,10 +186,7 @@ function renderExercises(entries, sheetName) {
     // 5) Actual reps inputs
     actualArr.forEach((val, i) => {
       const inp = clone.querySelector(`.reps${i+1}-input`);
-      if (!inp) {
-        console.warn(`Missing .reps${i+1}-input in template`);
-        return;
-      }
+      if (!inp) return;
       inp.value = val || '';
       inp.dataset.row = rowNum;
       inp.dataset.col = colMap[i];
@@ -205,14 +203,16 @@ function renderExercises(entries, sheetName) {
       clone.querySelector(`.${field}-input`).replaceWith(sel);
     });
 
-    // 7) RPE & Override
-    const rpeInp = clone.querySelector('.rpe-input');
-    rpeInp.value = rpe;
-    rpeInp.dataset.row = rowNum;
-    rpeInp.dataset.col = 'V';
+    // 7) RPE dropdown
+    const rpeSel = createDropdown(
+      Array.from({ length: 11 }, (_, i) => ({ value: String(i), label: String(i) })),
+      rpe, rowNum, 'V'
+    );
+    clone.querySelector('.rpe-input').replaceWith(rpeSel);
 
+    // 8) Override dropdown
     const overInp = clone.querySelector('.override-input');
-    overInp.value = override;
+    overInp.value = override || '';
     overInp.dataset.row = rowNum;
     overInp.dataset.col = 'X';
 
