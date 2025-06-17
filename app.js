@@ -10,14 +10,17 @@ const painOptions   = [ /* ... */ ];
 let currentUser = null;
 let sheetCache  = [];
 
-// Build the Sheets API URL for a given tab/user
+// Build the Sheets API URL for a given tab/user with explicit A1 range
 function urlFor(tab) {
-  return `https://sheets.googleapis.com/v4/spreadsheets/${
-    SHEET_ID}/values/${encodeURIComponent(tab)}?key=${API_KEY}`;
+  // Request columns A through Z (rows 1 to 1000)
+  const range = `${tab}!A1:Z1000`;
+  const encodedRange = encodeURIComponent(range);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodedRange}?key=${API_KEY}`;
+  console.log('Fetching sheet URL:', url);
+  return url;
 }
 
-// Fetch entire sheet data for the current user
-async function fetchSheet(tab) {
+// Fetch entire sheet data for the current user\ nasync function fetchSheet(tab) {
   const res = await fetch(urlFor(tab));
   if (!res.ok) throw new Error(`Fetch error: ${res.status}`);
   const json = await res.json();
@@ -36,7 +39,7 @@ async function initSelectors(sheetData) {
     if (row[0] && !isNaN(row[0])) weekSet.add(row[0]);
   });
 
-  [...weekSet].sort((a,b)=>a-b)
+  [...weekSet].sort((a,b) => a - b)
     .forEach(w => wSel.append(new Option(`Week ${w}`, w)));
 
   ['1','2','3','4','5','6','7'].forEach(d =>
@@ -47,7 +50,7 @@ async function initSelectors(sheetData) {
 // Filter sheetCache for rows matching the selected week/day
 function extractDay(week, day) {
   return sheetCache
-    .map((row, i) => ({ index: i+2, values: row }))  // +2 because sheet data starts on row 2
+    .map((row, i) => ({ index: i + 2, values: row }))
     .filter(entry =>
       entry.values[0] == week &&
       entry.values[1] == day &&
@@ -67,7 +70,7 @@ function attachInputs(sheetName) {
         await fetch(WRITE_URL, {
           method: 'POST',
           mode: 'no-cors',
-          body: JSON.stringify({ sheet: sheetName, cell: `${col}${row}`, value })
+          body: JSON.stringify({ sheet: sheetName, cell: `${col}${row}`, value }),
         });
       } catch (err) {
         console.error(err);
@@ -118,10 +121,9 @@ function renderExercises(entries, sheetName) {
 
   entries.forEach(e => {
     const rowNum = e.index;
-    const v      = e.values;
+    const v = e.values;
     if (v.length < 23) return;
 
-    // destructure values...
     const [week, day, name, prevWeight, targetWeightRaw, actualWeight,
       prev1, target1, actual1, prev2, target2, actual2,
       prev3, target3, actual3, prev4, target4, actual4,
@@ -130,69 +132,38 @@ function renderExercises(entries, sheetName) {
     let targetWeight = Number(targetWeightRaw) || 0;
     if (weekOverrideVal === 'Deload') targetWeight = Math.round(targetWeight * 0.9);
 
-    // determine numSets...
+    // Determine number of sets based on previous week
+    let numSets = 4;
+    const currentWeek = parseInt(document.getElementById('week-select').value, 10);
+    const currentDay = document.getElementById('day-select').value;
+    if (currentWeek > 1) {
+      const prev = sheetCache.find(r =>
+        parseInt(r[0], 10) === currentWeek - 1 &&
+        r[1] === currentDay &&
+        String(r[2]).trim() === name
+      );
+      numSets = prev && prev.length > 17 ? parseInt(prev[17], 10) || 3 : 3;
+    }
+
+    const prevArr = [prev1, prev2, prev3, prev4];
+    const targetArr = [target1, target2, target3, target4];
+    const actualArr = [actual1, actual2, actual3, actual4];
+    const colMap = ['I', 'L', 'O', 'R'];
 
     const clone = document.importNode(tpl, true);
-    // populate clone as before...
 
-    container.appendChild(clone);
-  });
+    // 1) Exercise name
+    const nameInput = clone.querySelector('.name-input');
+    nameInput.value = name;
+    nameInput.dataset.row = rowNum;
+    nameInput.dataset.col = 'C';
 
-  attachInputs(sheetName);
-}
+    // 2) Prev/Target weight
+    clone.querySelector('.prev-weight-display').innerText = prevWeight;
+    clone.querySelector('.target-weight-display').innerText = targetWeight;
 
-// Update view
-async function updateView() {
-  if (!currentUser) return;
-  const week = document.getElementById('week-select').value;
-  const day  = document.getElementById('day-select').value;
-  renderExercises(extractDay(week, day), currentUser);
-}
-
-// RESET APP
-async function resetApp() {
-  if ('serviceWorker' in navigator) {
-    const regs = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(regs.map(r => r.unregister()));
-  }
-  if ('caches' in window) {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
-  }
-  location.reload(true);
-}
-
-// Service worker registration
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/papas-muscle-machine/service-worker.js')
-      .catch(console.error);
-  });
-}
-
-// DOMContentLoaded → wire up UI
-window.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('#login-screen button[data-user]')
-    .forEach(btn => btn.addEventListener('click', async () => {
-      currentUser = btn.dataset.user;
-      try {
-        const full = await fetchSheet(currentUser);
-        sheetCache = full.slice(1);
-        await initSelectors(sheetCache);
-        document.getElementById('login-screen').style.display   = 'none';
-        document.getElementById('main-content').style.display = 'block';
-        document.getElementById('week-select').onchange   = updateView;
-        document.getElementById('day-select').onchange    = updateView;
-        document.getElementById('week-override').onchange = updateView;
-        updateView();
-      } catch (err) {
-        console.error(err);
-        document.getElementById('exercise-list').innerHTML =
-          '<p class="text-center text-red-500">Failed to load sheet.</p>';
-      }
-    }));
-
-  document.getElementById('reset-app-btn')
-    .addEventListener('click', resetApp);
-});
+    // 3) Actual weight input
+    const wtInp = clone.querySelector('.weight-actual-input');
+    wtInp.value = actualWeight;
+    wtInp.dataset.row = rowNum;
+    wtInp.datase
