@@ -28,9 +28,20 @@
 
   <!-- Main Content -->
   <div id="main-content" class="hidden">
-    <div class="flex space-x-4 mb-4">
-      <select id="week-select" class="p-2 border rounded"></select>
-      <select id="day-select" class="p-2 border rounded"></select>
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex space-x-4">
+        <select id="week-select" class="p-2 border rounded"></select>
+        <select id="day-select" class="p-2 border rounded"></select>
+      </div>
+      <!-- Week-level Override -->
+      <div>
+        <label for="week-override" class="text-sm font-medium text-gray-700 mr-2">Week Override</label>
+        <select id="week-override" class="p-2 border rounded bg-yellow-100">
+          <option value="">None</option>
+          <option value="Deload">Deload</option>
+          <option value="Force Keep">Force Keep</option>
+        </select>
+      </div>
     </div>
     <div id="exercise-list" class="space-y-4"></div>
   </div>
@@ -49,82 +60,63 @@
                value="" />
       </div>
 
-      <!-- Weight -->
+      <!-- Weight with Prev/Target display -->
       <div class="flex items-center mb-4 space-x-4">
         <div class="flex flex-col">
           <label class="text-xs text-[#808000]">Weight</label>
-          <input type="number"
-                 class="w-20 bg-[#454545] text-white rounded px-2 py-1 weight-input"
-                 data-row="" 
-                 data-col="D"
-                 placeholder="lbs"
-                 value="" />
+          <div class="flex space-x-2 items-center">
+            <div class="text-sm text-gray-500">{{prevWeight}}/</div>
+            <input type="text" readonly
+                   class="w-16 bg-gray-200 text-gray-600 rounded px-2 py-1 text-sm"
+                   value="{{targetWeight}}" />
+            <input type="number"
+                   class="w-20 bg-[#454545] text-white rounded px-2 py-1 weight-actual-input"
+                   data-row=""
+                   data-col="D"
+                   placeholder="Actual"
+                   value="" />
+          </div>
         </div>
       </div>
 
-      <!-- Sets -->
+      <!-- Sets with Prev/Target display -->
       <div class="grid grid-cols-4 gap-4 mb-4 text-sm sets-container">
-        <div>
-          <label class="text-xs text-[#808000]">Set 1</label>
-          <input type="number"
-                 class="w-full bg-[#454545] text-white rounded px-2 py-1 reps1-input"
-                 data-row=""
-                 data-col="E"
-                 value="" />
-        </div>
-        <div>
-          <label class="text-xs text-[#808000]">Set 2</label>
-          <input type="number"
-                 class="w-full bg-[#454545] text-white rounded px-2 py-1 reps2-input"
-                 data-row=""
-                 data-col="F"
-                 value="" />
-        </div>
-        <div>
-          <label class="text-xs text-[#808000]">Set 3</label>
-          <input type="number"
-                 class="w-full bg-[#454545] text-white rounded px-2 py-1 reps3-input"
-                 data-row=""
-                 data-col="G"
-                 value="" />
-        </div>
-        <div>
-          <label class="text-xs text-[#808000]">Set 4</label>
-          <input type="number"
-                 class="w-full bg-[#454545] text-white rounded px-2 py-1 reps4-input"
-                 data-row=""
-                 data-col="H"
-                 value="" />
-        </div>
+        <template x-for="i in [1,2,3,4]">
+          <div>
+            <label class="text-xs text-[#808000]">Set <span x-text="i"></span></label>
+            <div class="flex space-x-2 items-center">
+              <div class="text-sm text-gray-500" x-text="prevReps[i-1]"></div>
+              <input type="text" readonly
+                     class="w-12 bg-gray-200 text-gray-600 rounded px-2 py-1 text-sm"
+                     x-bind:value="targetReps[i-1] || ''" />
+              <input type="number"
+                     class="w-full bg-[#454545] text-white rounded px-2 py-1"
+                     x-bind:data-col="['E','F','G','H'][i-1]"
+                     x-bind:data-row="row"
+                     placeholder="Actual"
+                     x-model="actualReps[i-1]" />
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- Dropdowns for pump, healed, pain -->
       <div class="grid grid-cols-3 gap-4 text-sm">
-        <div>
-          <label class="text-xs text-[#808000]">Pump</label>
-          <input type="number"
-                 class="w-20 bg-[#454545] text-white rounded px-2 py-1 pump-input"
-                 data-row=""
-                 data-col="I"
-                 value="" />
-        </div>
-        <div>
-          <label class="text-xs text-[#808000]">Healed</label>
-          <input type="number"
-                 class="w-20 bg-[#454545] text-white rounded px-2 py-1 healed-input"
-                 data-row=""
-                 data-col="J"
-                 value="" />
-        </div>
-        <div>
-          <label class="text-xs text-[#808000]">Pain</label>
-          <input type="number"
-                 class="w-20 bg-[#454545] text-white rounded px-2 py-1 pain-input"
-                 data-row=""
-                 data-col="K"
-                 value="" />
-        </div>
+        <template x-for="(field, idx) in ['Pump','Healed','Pain']">
+          <div>
+            <label class="text-xs text-[#808000]" x-text="field"></label>
+            <select class="w-20 bg-[#454545] text-white rounded px-2 py-1"
+                    x-bind:data-col="['I','J','K'][idx]"
+                    x-model="metrics[field.toLowerCase()]">
+              <option value="">-</option>
+              <template x-for="n in [1,2,3,4,5]">
+                <option x-text="n" x-bind:value="n"></option>
+              </template>
+            </select>
+          </div>
+        </template>
       </div>
+
     </div>
   </template>
 
