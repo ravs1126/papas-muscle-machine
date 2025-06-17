@@ -105,6 +105,7 @@ function createDropdown(options, selectedValue, rowNum, col) {
 
 // Main render function: builds a card per exercise row
 function renderExercises(entries, sheetName) {
+  console.log('🛠️ renderExercises called with', entries.length, 'entries')
   const container = document.getElementById('exercise-list');
   container.innerHTML = '';
   if (!entries.length) {
@@ -223,6 +224,7 @@ function renderExercises(entries, sheetName) {
     overInp.dataset.row = rowNum;
     overInp.dataset.col = 'X';
 
+    console.log('🖨 Appending card for row', rowNum);
     container.appendChild(clone);
   });
 
