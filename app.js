@@ -1,18 +1,17 @@
 // ─── CONFIG ───
 const WRITE_URL = 'https://script.google.com/macros/s/AKfycbxI6ZSAearvsukTH2Jo-oiJv1SR2htEn2EqrqoY8t3mm0tFdlNLS1cQOy7a4vEORkQSPw/exec';
 const SHEET_ID  = '1VX4J2xy887awfpTbUrYTqbGCJiaHXCBRJ6kcW31HTaw';
-const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I'; // TODO: replace with your actual Google Sheets API key
+const API_KEY   = 'AIzaSyA23e0btCLiuyAddQLN0doOREr3tdzPC0I'; // replace with your Google Sheets API key
 
-const pumpOptions   = [ /* ... */ ];
-const healedOptions = [ /* ... */ ];
-const painOptions   = [ /* ... */ ];
+const pumpOptions   = [];
+const healedOptions = [];
+const painOptions   = [];
 
 let currentUser = null;
 let sheetCache  = [];
 
 // Build the Sheets API URL for a given tab/user with explicit A1 range
 function urlFor(tab) {
-  // Request columns A through Z (rows 1 to 1000)
   const range = `${tab}!A1:Z1000`;
   const encodedRange = encodeURIComponent(range);
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodedRange}?key=${API_KEY}`;
@@ -192,8 +191,10 @@ function renderExercises(entries, sheetName) {
     });
 
     // 6) RPE & Override
-    const rpeInp = clone.querySelector('.rpe-input'); rpeInp.value = rpe; rpeInp.dataset.row = rowNum; rpeInp.dataset.col = 'V';
-    const overInp = clone.querySelector('.override-input'); overInp.value = override; overInp.dataset.row = rowNum; overInp.dataset.col = 'X';
+    const rpeInp = clone.querySelector('.rpe-input');
+    rpeInp.value = rpe; rpeInp.dataset.row = rowNum; rpeInp.dataset.col = 'V';
+    const overInp = clone.querySelector('.override-input');
+    overInp.value = override; overInp.dataset.row = rowNum; overInp.dataset.col = 'X';
 
     container.appendChild(clone);
   });
@@ -240,14 +241,14 @@ window.addEventListener('DOMContentLoaded', () => {
         sheetCache = full.slice(1); // drop header row
         initSelectors(sheetCache);
         document.getElementById('login-screen').style.display = 'none';
-       	document.getElementById('main-content').style.display = 'block';
+        document.getElementById('main-content').style.display = 'block';
         document.getElementById('week-select').addEventListener('change', updateView);
         document.getElementById('day-select').addEventListener('change', updateView);
         document.getElementById('week-override').addEventListener('change', updateView);
         updateView();
       } catch (err) {
         console.error(err);
-        document.getElementById('exercise-list').innerHTML = '<p class="text-center text-red-500">Failed to load sheet.</p>';
+        document.getElementById('exercise-list').innerHTML = '<p class=\"text-center text-red-500\">Failed to load sheet.</p>';
       }
     }));
   document.getElementById('reset-app-btn').addEventListener('click', resetApp);
