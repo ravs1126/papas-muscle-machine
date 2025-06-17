@@ -1,4 +1,4 @@
-const CACHE_NAME = 'progress-pwa-v5'; // Update the cache version here to ensure a fresh start
+const CACHE_NAME = 'progress-pwa-v6'; // Update the cache version here to ensure a fresh start
 const APP_SHELL = [
   '/papas-muscle-machine/',
   '/papas-muscle-machine/index.html',
