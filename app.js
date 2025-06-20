@@ -192,16 +192,22 @@ function renderExercises(entries, sheetName) {
       inp.dataset.col = colMap[i];
     });
 
-    // 6) Pump/Healed/Pain dropdowns
-    ['pump','healed','pain'].forEach((field, idx) => {
-      const sel = createDropdown(
-        field === 'pump'   ? pumpOptions
-      : field === 'healed' ? healedOptions
-      :                       painOptions,
-        v[18 + idx], rowNum, String.fromCharCode(73 + idx)
-      );
-      clone.querySelector(`.${field}-input`).replaceWith(sel);
-    });
+    /// 6) Pump/Healed/Pain dropdowns
+const dropdownCols = { pump: 'S', healed: 'T', pain: 'U' };
+['pump','healed','pain'].forEach(field => {
+  const colLetter = dropdownCols[field];
+  const opts      = field === 'pump'   ? pumpOptions
+                  : field === 'healed' ? healedOptions
+                  :                       painOptions;
+  const sel = createDropdown(
+    opts,
+    e.values?.[ { pump:18, healed:19, pain:20 }[field] ] || '', // your saved value
+    rowNum,
+    colLetter
+  );
+  clone.querySelector(`.${field}-input`).replaceWith(sel);
+});
+
 
     // 7) RPE dropdown
     const rpeSel = createDropdown(
